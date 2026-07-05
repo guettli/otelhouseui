@@ -1,0 +1,23 @@
+{
+  "name": "otelhouseui-report",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "description": "Static, self-contained HTML report renderer for OTel data in ClickHouse. Built by the Dagger CI pipeline in ../ci and served from the cluster.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@tsconfig/svelte": "^5.0.4",
+    "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "svelte": "^5.19.0",
+    "svelte-check": "^4.1.4",
+    "typescript": "^5.7.3",
+    "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.1.0"
+  }
+}

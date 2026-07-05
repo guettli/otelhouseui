@@ -1,0 +1,53 @@
+# OpenTelemetry Collector config for the otelhouseui CI harness.
+#
+# The upstream clickhouseexporter (create_schema: true) owns the
+# otel_logs / otel_traces / otel_metrics_* tables and creates them on first
+# insert — the exact clickhouseexporter schema the UI targets. The emitter
+# (ci/cmd/emit) pushes OTLP/gRPC to this collector; genreport (ci/cmd/genreport)
+# then reads the tables straight out of ClickHouse to build report.json.
+#
+# ClickHouse connection details come from ${env:...} so the YAML stays generic;
+# the single source of truth is ci/main.go, where the ClickHouse service is
+# configured.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+exporters:
+  clickhouse:
+    endpoint: tcp://${env:CLICKHOUSE_HOST}:9000?dial_timeout=10s
+    database: ${env:CLICKHOUSE_DB}
+    username: ${env:CLICKHOUSE_USER}
+    password: ${env:CLICKHOUSE_PASSWORD}
+    create_schema: true
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse]
