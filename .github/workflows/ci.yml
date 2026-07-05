@@ -1,0 +1,93 @@
+# Runs the Dagger CI pipeline on every PR and push to main.
+#
+# Dagger handles: gofmt, go vet, go build, go test; the e2e telemetry harness
+# (upstream OTel Collector + emit + genreport → ClickHouse → report.json); the
+# Svelte single-file build; and, on pushes to main only, the upload of the
+# report into the cluster's otelhouseui-report ConfigMap.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep in sync with dagger.io/dagger in ci/go.mod.
+  DAGGER_ENGINE_VERSION: v0.21.7
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ci/go.mod
+          cache-dependency-path: ci/go.sum
+
+      # Cache the Dagger engine image across runs so most CI jobs never hit
+      # registry.dagger.io. The key includes the engine version, so a Dagger
+      # SDK bump in ci/go.mod automatically invalidates the cache.
+      - name: Cache Dagger engine image
+        uses: actions/cache@v4
+        with:
+          path: /tmp/dagger-engine.tar
+          key: dagger-engine-${{ env.DAGGER_ENGINE_VERSION }}
+
+      # Pre-pull (or restore from cache) the Dagger engine image so transient
+      # registry.dagger.io timeouts don't fail the whole run. Try GHCR first
+      # (the canonical publish target per dagger's RELEASING.md), retag to the
+      # name the SDK expects, and fall back to the mirror. Same approach as the
+      # otelhouse repo (guettli/otelhouse#15).
+      - name: Pre-pull Dagger engine image
+        run: |
+          set -eu
+          canonical="registry.dagger.io/engine:${DAGGER_ENGINE_VERSION}"
+          mirror="ghcr.io/dagger/engine:${DAGGER_ENGINE_VERSION}"
+          if [ -f /tmp/dagger-engine.tar ]; then
+            echo "Loading engine image from cache" >&2
+            docker load -i /tmp/dagger-engine.tar
+            exit 0
+          fi
+          attempt=1
+          for backoff in 10 20 30 60 120 0; do
+            for src in "$mirror" "$canonical"; do
+              if docker pull "$src"; then
+                if [ "$src" != "$canonical" ]; then docker tag "$src" "$canonical"; fi
+                docker save "$canonical" -o /tmp/dagger-engine.tar
+                exit 0
+              fi
+            done
+            [ "$backoff" -eq 0 ] && break
+            echo "pull attempt $attempt failed on both registries; retrying in ${backoff}s" >&2
+            sleep "$backoff"
+            attempt=$((attempt + 1))
+          done
+          echo "pull failed after $attempt attempts (both registries)" >&2
+          exit 1
+
+      - name: Run Dagger pipeline
+        env:
+          # Provenance stamped into the report.
+          OTELHOUSEUI_REPO: ${{ github.repository }}
+          OTELHOUSEUI_COMMIT: ${{ github.sha }}
+          OTELHOUSEUI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Upload the report to the cluster only on pushes to main.
+          OTELHOUSEUI_UPLOAD: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
+          # Scoped kube credentials (configmaps in the otelhouseui namespace only).
+          # Unused on PRs, where OTELHOUSEUI_UPLOAD is 0.
+          OTELHOUSEUI_KUBE_SERVER: ${{ secrets.OTELHOUSEUI_KUBE_SERVER }}
+          OTELHOUSEUI_KUBE_TOKEN: ${{ secrets.OTELHOUSEUI_KUBE_TOKEN }}
+          OTELHOUSEUI_KUBE_CA: ${{ secrets.OTELHOUSEUI_KUBE_CA }}
+        run: cd ci && go run .

@@ -51,3 +51,34 @@ SQLite for saved queries + sessions. Single binary, embedded SPA (like agentloop
   radius to "ran a SELECT".
 - **Trace waterfall** (phase 2).
 - **Multi-chart dashboards** (phase 2).
+
+## Static report pipeline (added)
+
+The interactive query UI above is the v1 product. A second, self-contained path
+produces a **static HTML report** for CI/e2e visibility and is the surface this
+repo's own CI exercises end to end.
+
+```
+emit (OTLP) → OTel Collector → ClickHouse → genreport → report.json
+            → Svelte build (single-file) → dist/index.html → cluster ConfigMap
+```
+
+- **`ui/`** — Vite + Svelte 5 app built with `vite-plugin-singlefile`. It
+  `import`s `src/lib/report-data.json` (baked in, not fetched) so the build is
+  one offline HTML file. `src/lib/report.ts` is the schema contract with the Go
+  builder; keep the two in sync.
+- **`ci/`** — the Dagger pipeline (Go), the single source of truth for tests.
+  `cmd/emit` spreads records over a time window and varies severity / metric
+  value / span duration so the report has a real time-series, a severity
+  breakdown, a metric curve and an OK/ERROR trace mix. `cmd/genreport` queries
+  the clickhouseexporter tables (`otel_logs`, `otel_traces`,
+  `otel_metrics_gauge`) and fails loudly rather than emit a partial report.
+- **Upload** — on pushes to `main`, the report is written into the
+  `otelhouseui-report` ConfigMap (namespace `otelhouseui`) via a
+  ServiceAccount token whose RBAC is limited to that one ConfigMap kind in that
+  namespace. A caddy Deployment mounts the ConfigMap and serves it. The kube
+  manifests live in the `guettli/gitops` repo (`k8s/plain/otelhouseui`).
+
+Why Svelte here when the query UI is React (per Stack above): the report is a
+throwaway single-file render with no shared runtime, so it does not couple to
+the query SPA. The query SPA remains React as designed.
