@@ -7,7 +7,7 @@
 # inherited by `go run` below. The cluster upload step is skipped unless
 # OTELHOUSEUI_UPLOAD=1 (CI sets it only on pushes to main).
 
-.PHONY: ci test ui-build ui-dev
+.PHONY: ci test ui-build ui-dev web web-dev app-test app-build
 ci test:
 	cd ci && go run .
 
@@ -17,3 +17,24 @@ ui-build:
 
 ui-dev:
 	cd ui && pnpm install && pnpm run dev
+
+# --- otelhouseui service (the vertical slice: Go binary + Svelte SPA) -------
+
+# Build the SPA (Svelte + CodeMirror + ECharts) into web/build/ so `go build`
+# can embed it. Run once before `app-build`; re-run after touching web/src.
+web:
+	cd web && pnpm install --frozen-lockfile && pnpm run build
+
+# Dev server for the SPA. Assumes the Go service is running on :8080; Vite
+# proxies /api and /healthz to it.
+web-dev:
+	cd web && pnpm install && pnpm run dev
+
+# Go unit tests for the service module.
+app-test:
+	go test ./...
+
+# Build the single self-contained binary. Requires `make web` first so the
+# embedded SPA is up to date.
+app-build:
+	go build -o bin/otelhouseui ./cmd/otelhouseui
