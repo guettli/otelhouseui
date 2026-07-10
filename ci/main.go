@@ -55,7 +55,7 @@ func pipeline(ctx context.Context) error {
 	// Mount the repo. Exclude heavy/irrelevant trees so the build context stays
 	// small and node_modules from a local run never leaks into the container.
 	src := client.Host().Directory("..", dagger.HostDirectoryOpts{
-		Exclude: []string{".git/", "ui/node_modules/", "ui/dist/"},
+		Exclude: []string{".git/", "ui/node_modules/", "ui/dist/", "web/node_modules/"},
 	})
 
 	goMod := client.CacheVolume("otelhouseui-go-mod")
@@ -86,15 +86,32 @@ func pipeline(ctx context.Context) error {
 	}).Sync(ctx); err != nil {
 		return fmt.Errorf("gofmt: %w", err)
 	}
-	// go vet + build + unit tests.
+	// go vet + build + unit tests for the ci module.
 	for _, step := range [][]string{
 		{"go", "vet", "./..."},
 		{"go", "build", "./..."},
 		{"go", "test", "-count=1", "./..."},
 	} {
 		if _, err = goBase.WithExec(step).Sync(ctx); err != nil {
-			return fmt.Errorf("%v: %w", step, err)
+			return fmt.Errorf("ci: %v: %w", step, err)
 		}
+	}
+	// Same checks for the otelhouseui service module at the repo root.
+	// CGO is off so paulmach/orb (an indirect clickhouse-go dep) picks its
+	// pure-Go path — the alpine image has no C toolchain.
+	appBase := goBase.WithWorkdir("/src").WithEnvVariable("CGO_ENABLED", "0")
+	for _, step := range [][]string{
+		{"go", "vet", "./..."},
+		{"go", "build", "./..."},
+		{"go", "test", "-count=1", "./..."},
+	} {
+		if _, err = appBase.WithExec(step).Sync(ctx); err != nil {
+			return fmt.Errorf("app: %v: %w", step, err)
+		}
+	}
+	// SPA unit tests (autoViz heuristic).
+	if _, err = runWebTests(ctx, client, src); err != nil {
+		return fmt.Errorf("web tests: %w", err)
 	}
 
 	// e2e: emit telemetry → collector → ClickHouse → genreport → report.json.
@@ -163,6 +180,23 @@ func runE2E(
 		return nil, fmt.Errorf("e2e harness: %w", err)
 	}
 	return harness.File("/out/report.json"), nil
+}
+
+// runWebTests runs `pnpm install` + `pnpm run test` for the otelhouseui
+// service SPA under web/. The vitest suite covers autoViz.ts (the auto-chart
+// heuristic on which the whole "grid or line" UX pivots).
+func runWebTests(ctx context.Context, client *dagger.Client, src *dagger.Directory) (*dagger.Container, error) {
+	pnpmStore := client.CacheVolume("otelhouseui-pnpm-store")
+	return client.Container().
+		From("node:22-alpine").
+		WithMountedCache("/root/.local/share/pnpm/store", pnpmStore).
+		WithMountedDirectory("/app", src.Directory("web")).
+		WithWorkdir("/app").
+		WithExec([]string{"corepack", "enable"}).
+		WithExec([]string{"corepack", "prepare", "pnpm@9.15.4", "--activate"}).
+		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
+		WithExec([]string{"pnpm", "run", "test"}).
+		Sync(ctx)
 }
 
 // buildReport bakes report.json into ui/src/lib/report-data.json and runs the
