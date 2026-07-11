@@ -55,7 +55,7 @@ func pipeline(ctx context.Context) error {
 	// Mount the repo. Exclude heavy/irrelevant trees so the build context stays
 	// small and node_modules from a local run never leaks into the container.
 	src := client.Host().Directory("..", dagger.HostDirectoryOpts{
-		Exclude: []string{".git/", "ui/node_modules/", "ui/dist/", "web/node_modules/"},
+		Exclude: []string{".git/", "ui/node_modules/", "ui/dist/", "explore/web/node_modules/"},
 	})
 
 	goMod := client.CacheVolume("otelhouseview-go-mod")
@@ -182,15 +182,16 @@ func runE2E(
 	return harness.File("/out/report.json"), nil
 }
 
-// runWebTests runs `pnpm install` + `pnpm run test` for the otelhouseview
-// service SPA under web/. The vitest suite covers autoViz.ts (the auto-chart
-// heuristic on which the whole "grid or line" UX pivots).
+// runWebTests runs `pnpm install` + `pnpm run test` for the workbench SPA under
+// explore/web/. The vitest suite covers autoViz.ts (the auto-chart heuristic on
+// which the whole "grid or line" UX pivots) and api.ts (the mount-base URL
+// building that lets a host app mount explore under any prefix).
 func runWebTests(ctx context.Context, client *dagger.Client, src *dagger.Directory) (*dagger.Container, error) {
 	pnpmStore := client.CacheVolume("otelhouseview-pnpm-store")
 	return client.Container().
 		From("node:22-alpine").
 		WithMountedCache("/root/.local/share/pnpm/store", pnpmStore).
-		WithMountedDirectory("/app", src.Directory("web")).
+		WithMountedDirectory("/app", src.Directory("explore/web")).
 		WithWorkdir("/app").
 		WithExec([]string{"corepack", "enable"}).
 		WithExec([]string{"corepack", "prepare", "pnpm@9.15.4", "--activate"}).

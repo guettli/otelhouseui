@@ -1,15 +1,16 @@
-// Command otelhouseview runs the query + visualise UI as a single binary.
+// Command otelhouseview runs the query workbench as a standalone binary.
 //
-// The binary bundles the SPA (Svelte + CodeMirror + ECharts), talks to a
-// read-only ClickHouse user for all queries, and persists saved query
-// templates in a local SQLite file.
+// It is a thin wrapper over the explore package, mounted at "/". This is a
+// convenience for local development, not the intended production shape: in
+// production a host application (agentloop) imports explore and mounts it
+// behind its own authentication. This binary authenticates nobody — do not put
+// it on a public listener.
 package main
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -19,12 +20,8 @@ import (
 	"syscall"
 	"time"
 
-	otelhouseview "github.com/guettli/otelhouseview"
-	"github.com/guettli/otelhouseview/internal/ch"
+	"github.com/guettli/otelhouseview/explore"
 	"github.com/guettli/otelhouseview/internal/config"
-	"github.com/guettli/otelhouseview/internal/httpapi"
-	"github.com/guettli/otelhouseview/internal/starters"
-	"github.com/guettli/otelhouseview/internal/store"
 )
 
 func main() {
@@ -40,34 +37,21 @@ func run() error {
 		return err
 	}
 
-	log.Printf("connecting to clickhouse")
+	log.Printf("connecting to clickhouse, opening sqlite at %s", cfg.SQLitePath)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	chc, err := ch.Open(ctx, cfg.ClickHouseDSN)
+	svc, err := explore.New(ctx, explore.Config{
+		DSN:       cfg.ClickHouseDSN,
+		StorePath: cfg.SQLitePath,
+		Prefix:    "/",
+	})
 	if err != nil {
-		return fmt.Errorf("clickhouse: %w", err)
+		return err
 	}
-	defer func() { _ = chc.Close() }()
+	defer func() { _ = svc.Close() }()
 
-	log.Printf("opening sqlite at %s", cfg.SQLitePath)
-	st, err := store.Open(cfg.SQLitePath)
-	if err != nil {
-		return fmt.Errorf("sqlite: %w", err)
-	}
-	defer func() { _ = st.Close() }()
-
-	if err := starters.Seed(context.Background(), st); err != nil {
-		return fmt.Errorf("seed starters: %w", err)
-	}
-
-	web, err := fs.Sub(otelhouseview.WebFS(), "web/build")
-	if err != nil {
-		return fmt.Errorf("embed sub: %w", err)
-	}
-
-	handler := httpapi.New(st, chc, web).Handler()
 	addr := net.JoinHostPort("", strconv.Itoa(cfg.Port))
-	srv := &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Addr: addr, Handler: svc.Handler(), ReadHeaderTimeout: 10 * time.Second}
 
 	stopped := make(chan error, 1)
 	go func() {

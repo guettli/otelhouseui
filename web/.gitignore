@@ -1,7 +1,0 @@
-node_modules/
-# build/ is populated by `pnpm run build` and consumed by Go's go:embed.
-# The placeholder build/index.html is tracked so `go build` works even before
-# the first frontend build (real builds overwrite it).
-build/*
-!build/index.html
-*.tsbuildinfo

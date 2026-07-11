@@ -12,8 +12,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/guettli/otelhouseview/internal/ch"
-	"github.com/guettli/otelhouseview/internal/store"
+	"github.com/guettli/otelhouseview/explore/internal/ch"
+	"github.com/guettli/otelhouseview/explore/internal/store"
 )
 
 type fakeCH struct {
@@ -50,7 +50,7 @@ func newTestServer(t *testing.T, exec QueryExecutor, web fs.FS) (*httptest.Serve
 	if exec == nil {
 		exec = &fakeCH{}
 	}
-	ts := httptest.NewServer(New(st, exec, web).Handler())
+	ts := httptest.NewServer(New(st, exec, web, "/").Handler())
 	t.Cleanup(ts.Close)
 	return ts, st
 }

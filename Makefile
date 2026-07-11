@@ -20,15 +20,17 @@ ui-dev:
 
 # --- otelhouseview service (the vertical slice: Go binary + Svelte SPA) -------
 
-# Build the SPA (Svelte + CodeMirror + ECharts) into web/build/ so `go build`
-# can embed it. Run once before `app-build`; re-run after touching web/src.
+# Build the workbench SPA (Svelte + CodeMirror + ECharts) into
+# explore/web/build/, which the explore package go:embeds. The result is
+# COMMITTED (explore is imported as a library; importers get whatever go:embed
+# sees in the module). Re-run and commit after touching explore/web/src.
 web:
-	cd web && pnpm install --frozen-lockfile && pnpm run build
+	cd explore/web && pnpm install --frozen-lockfile && pnpm run build
 
 # Dev server for the SPA. Assumes the Go service is running on :8080; Vite
 # proxies /api and /healthz to it.
 web-dev:
-	cd web && pnpm install && pnpm run dev
+	cd explore/web && pnpm install && pnpm run dev
 
 # Go unit tests for the service module.
 app-test:

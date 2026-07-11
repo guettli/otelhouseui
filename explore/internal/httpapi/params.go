@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/guettli/otelhouseview/internal/store"
+	"github.com/guettli/otelhouseview/explore/internal/store"
 )
 
 // bindParams converts a raw request body (arbitrary JSON) into typed Go values

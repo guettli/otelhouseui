@@ -7,6 +7,7 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,9 +16,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/guettli/otelhouseview/internal/ch"
-	"github.com/guettli/otelhouseview/internal/store"
+	"github.com/guettli/otelhouseview/explore/internal/ch"
+	"github.com/guettli/otelhouseview/explore/internal/store"
 )
 
 // QueryExecutor is the small subset of the ClickHouse client this package
@@ -27,18 +29,43 @@ type QueryExecutor interface {
 	Ping(ctx context.Context) error
 }
 
+// BasePlaceholder is the token the Vite build bakes into every absolute URL it
+// emits (asset <script>/<link> hrefs, and the inline bootstrap that sets
+// window.__EXPLORE_BASE__). It is rewritten to the real mount base when
+// index.html is served, so one committed build works at any mount point with no
+// build-time configuration. Keep in sync with `base` in explore/web/vite.config.ts.
+const BasePlaceholder = "/__EXPLORE_BASE__/"
+
 // Server is the concrete HTTP handler.
 type Server struct {
 	store *store.Store
 	ch    QueryExecutor
 	web   fs.FS
+	index []byte // index.html with BasePlaceholder resolved; nil if unavailable
 }
 
 // New builds a Server. `web` should be the SPA build tree (rooted so that
 // "index.html" is at the top level). Pass nil to disable the SPA fallback,
-// which is convenient in tests.
-func New(s *store.Store, exec QueryExecutor, web fs.FS) *Server {
-	return &Server{store: s, ch: exec, web: web}
+// which is convenient in tests. `base` is the mount base with leading and
+// trailing slashes ("/" for a root mount, "/explore/" for a prefixed one); it
+// is substituted for BasePlaceholder in the served index.html.
+func New(s *store.Store, exec QueryExecutor, web fs.FS, base string) *Server {
+	if base == "" {
+		base = "/"
+	}
+	return &Server{store: s, ch: exec, web: web, index: renderIndex(web, base)}
+}
+
+// renderIndex reads index.html once and resolves the base placeholder.
+func renderIndex(web fs.FS, base string) []byte {
+	if web == nil {
+		return nil
+	}
+	raw, err := fs.ReadFile(web, "index.html")
+	if err != nil {
+		return nil
+	}
+	return bytes.ReplaceAll(raw, []byte(BasePlaceholder), []byte(base))
 }
 
 // Handler returns the wired HTTP handler.
@@ -279,23 +306,23 @@ func (s *Server) spa(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := strings.TrimPrefix(r.URL.Path, "/")
-	if name == "" {
-		name = "index.html"
-	}
 	// Serve the requested asset if it exists, otherwise fall back to index.html
 	// so client-side routing (/saved, /saved/{id}) works from a fresh page load.
-	f, err := s.web.Open(name)
-	if err != nil {
-		f, err = s.web.Open("index.html")
-		if err != nil {
-			http.NotFound(w, r)
+	if name != "" && name != "index.html" {
+		if f, err := s.web.Open(name); err == nil {
+			_ = f.Close()
+			http.ServeFileFS(w, r, s.web, name)
 			return
 		}
-		name = "index.html"
 	}
-	_ = f.Close()
-
-	http.ServeFileFS(w, r, s.web, name)
+	if s.index == nil {
+		http.NotFound(w, r)
+		return
+	}
+	// index.html is served from memory, not from the FS, because the mount base
+	// has been substituted into it — its bytes no longer match the file's.
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(s.index))
 }
 
 // --- helpers ---------------------------------------------------------------
