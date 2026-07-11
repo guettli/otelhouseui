@@ -26,7 +26,7 @@ type Config struct {
 func Load() (Config, error) {
 	c := Config{
 		ClickHouseDSN: os.Getenv("CLICKHOUSE_DSN"),
-		SQLitePath:    envOr("SQLITE_PATH", "./otelhouseui.db"),
+		SQLitePath:    envOr("SQLITE_PATH", "./otelhouseview.db"),
 	}
 	if c.ClickHouseDSN == "" {
 		return Config{}, errors.New("CLICKHOUSE_DSN is required")

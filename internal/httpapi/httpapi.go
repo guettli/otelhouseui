@@ -1,4 +1,4 @@
-// Package httpapi wires HTTP routes for the otelhouseui service.
+// Package httpapi wires HTTP routes for the otelhouseview service.
 //
 // The API is deliberately signal-agnostic: one query executor + one saved-
 // query CRUD is enough to serve metrics charts, log-volume-over-time and span
@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/guettli/otelhouseui/internal/ch"
-	"github.com/guettli/otelhouseui/internal/store"
+	"github.com/guettli/otelhouseview/internal/ch"
+	"github.com/guettli/otelhouseview/internal/store"
 )
 
 // QueryExecutor is the small subset of the ClickHouse client this package

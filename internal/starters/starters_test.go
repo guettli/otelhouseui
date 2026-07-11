@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/guettli/otelhouseui/internal/store"
+	"github.com/guettli/otelhouseview/internal/store"
 )
 
 func TestSeed_idempotent(t *testing.T) {

@@ -1,9 +1,9 @@
 {
   "generatedAt": "2026-07-05T12:00:00Z",
   "source": {
-    "repo": "guettli/otelhouseui",
+    "repo": "guettli/otelhouseview",
     "commit": "0000000000000000000000000000000000000000",
-    "runURL": "https://github.com/guettli/otelhouseui"
+    "runURL": "https://github.com/guettli/otelhouseview"
   },
   "window": { "from": "2026-07-05T11:45:00Z", "to": "2026-07-05T12:00:00Z" },
   "summary": { "logs": 320, "spans": 60, "traces": 30, "metricPoints": 24, "errorLogs": 22 },
@@ -32,7 +32,7 @@
   ],
   "metrics": [
     {
-      "name": "otelhouseui.demo.load",
+      "name": "otelhouseview.demo.load",
       "unit": "1",
       "latest": 0.62,
       "points": [
@@ -48,8 +48,8 @@
     }
   ],
   "traces": [
-    { "traceId": "1234567890abcdef1234567890abcdef", "service": "otelhouseui-emit", "rootSpan": "checkout", "spanCount": 2, "durationMs": 142.4, "status": "STATUS_CODE_OK", "startTime": "2026-07-05T11:59:12Z" },
-    { "traceId": "abcdef1234567890abcdef1234567890", "service": "otelhouseui-emit", "rootSpan": "checkout", "spanCount": 2, "durationMs": 318.9, "status": "STATUS_CODE_ERROR", "startTime": "2026-07-05T11:58:40Z" },
-    { "traceId": "0f0e0d0c0b0a090807060504030201ff", "service": "otelhouseui-emit", "rootSpan": "checkout", "spanCount": 2, "durationMs": 96.1, "status": "STATUS_CODE_OK", "startTime": "2026-07-05T11:57:03Z" }
+    { "traceId": "1234567890abcdef1234567890abcdef", "service": "otelhouseview-emit", "rootSpan": "checkout", "spanCount": 2, "durationMs": 142.4, "status": "STATUS_CODE_OK", "startTime": "2026-07-05T11:59:12Z" },
+    { "traceId": "abcdef1234567890abcdef1234567890", "service": "otelhouseview-emit", "rootSpan": "checkout", "spanCount": 2, "durationMs": 318.9, "status": "STATUS_CODE_ERROR", "startTime": "2026-07-05T11:58:40Z" },
+    { "traceId": "0f0e0d0c0b0a090807060504030201ff", "service": "otelhouseview-emit", "rootSpan": "checkout", "spanCount": 2, "durationMs": 96.1, "status": "STATUS_CODE_OK", "startTime": "2026-07-05T11:57:03Z" }
   ]
 }

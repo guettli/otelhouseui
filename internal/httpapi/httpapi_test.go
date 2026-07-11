@@ -12,8 +12,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/guettli/otelhouseui/internal/ch"
-	"github.com/guettli/otelhouseui/internal/store"
+	"github.com/guettli/otelhouseview/internal/ch"
+	"github.com/guettli/otelhouseview/internal/store"
 )
 
 type fakeCH struct {

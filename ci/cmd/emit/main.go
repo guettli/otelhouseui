@@ -35,7 +35,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const serviceName = "otelhouseui-emit"
+const serviceName = "otelhouseview-emit"
 
 func main() {
 	var (
@@ -167,7 +167,7 @@ func emitMetrics(ctx context.Context, endpoint string, start, end time.Time, res
 	defer func() { _ = mp.Shutdown(ctx) }()
 
 	meter := mp.Meter(serviceName)
-	gauge, err := meter.Float64Gauge("otelhouseui.demo.load", metric.WithUnit("1"))
+	gauge, err := meter.Float64Gauge("otelhouseview.demo.load", metric.WithUnit("1"))
 	if err != nil {
 		return fmt.Errorf("create gauge: %w", err)
 	}

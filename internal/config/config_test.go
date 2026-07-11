@@ -13,7 +13,7 @@ func TestLoad_defaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if c.SQLitePath != "./otelhouseui.db" {
+	if c.SQLitePath != "./otelhouseview.db" {
 		t.Errorf("SQLitePath = %q, want default", c.SQLitePath)
 	}
 	if c.Port != 8080 {

@@ -120,9 +120,9 @@ func build(ctx context.Context, conn driver.Conn) (*report, error) {
 	rep := &report{
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 		Source: source{
-			Repo:   envOr("OTELHOUSEUI_REPO", "guettli/otelhouseui"),
+			Repo:   envOr("OTELHOUSEUI_REPO", "guettli/otelhouseview"),
 			Commit: envOr("OTELHOUSEUI_COMMIT", "0000000000000000000000000000000000000000"),
-			RunURL: envOr("OTELHOUSEUI_RUN_URL", "https://github.com/guettli/otelhouseui"),
+			RunURL: envOr("OTELHOUSEUI_RUN_URL", "https://github.com/guettli/otelhouseview"),
 		},
 		LogVolume:   []logBucket{},
 		LogSeverity: []sevCount{},
@@ -143,7 +143,7 @@ func build(ctx context.Context, conn driver.Conn) (*report, error) {
 	if err := conn.QueryRow(ctx, `SELECT uniqExact(TraceId) FROM otel_traces`).Scan(&rep.Summary.Traces); err != nil {
 		return nil, fmt.Errorf("count traces: %w", err)
 	}
-	if err := conn.QueryRow(ctx, `SELECT count() FROM otel_metrics_gauge WHERE MetricName LIKE 'otelhouseui%'`).Scan(&rep.Summary.MetricPoints); err != nil {
+	if err := conn.QueryRow(ctx, `SELECT count() FROM otel_metrics_gauge WHERE MetricName LIKE 'otelhouseview%'`).Scan(&rep.Summary.MetricPoints); err != nil {
 		return nil, fmt.Errorf("count metric points: %w", err)
 	}
 
@@ -197,7 +197,7 @@ func build(ctx context.Context, conn driver.Conn) (*report, error) {
 	order := []string{}
 	if err := scan(ctx, conn, `
 		SELECT MetricName AS name, toStartOfInterval(TimeUnix, INTERVAL 1 second) AS t, avg(Value) AS v
-		FROM otel_metrics_gauge WHERE MetricName LIKE 'otelhouseui%'
+		FROM otel_metrics_gauge WHERE MetricName LIKE 'otelhouseview%'
 		GROUP BY name, t ORDER BY name, t`,
 		func(rows driver.Rows) error {
 			var name string

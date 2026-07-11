@@ -1,8 +1,8 @@
-// Package otelhouseui exposes the embedded SPA build to the binary at
-// cmd/otelhouseui. The embed lives here because go:embed can only reach files
+// Package otelhouseview exposes the embedded SPA build to the binary at
+// cmd/otelhouseview. The embed lives here because go:embed can only reach files
 // at or below the source file's directory, and the SPA sources live under
 // web/, which is a sibling of internal/httpapi.
-package otelhouseui
+package otelhouseview
 
 import "embed"
 
