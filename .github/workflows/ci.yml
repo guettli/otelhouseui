@@ -3,7 +3,7 @@
 # Dagger handles: gofmt, go vet, go build, go test; the e2e telemetry harness
 # (upstream OTel Collector + emit + genreport → ClickHouse → report.json); the
 # Svelte single-file build; and, on pushes to main only, the upload of the
-# report into the cluster's otelhouseui-report ConfigMap.
+# report into the cluster's otelhouseview-report ConfigMap.
 name: CI
 
 on:
@@ -85,7 +85,7 @@ jobs:
           OTELHOUSEUI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           # Upload the report to the cluster only on pushes to main.
           OTELHOUSEUI_UPLOAD: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
-          # Scoped kube credentials (configmaps in the otelhouseui namespace only).
+          # Scoped kube credentials (configmaps in the otelhouseview namespace only).
           # Unused on PRs, where OTELHOUSEUI_UPLOAD is 0.
           OTELHOUSEUI_KUBE_SERVER: ${{ secrets.OTELHOUSEUI_KUBE_SERVER }}
           OTELHOUSEUI_KUBE_TOKEN: ${{ secrets.OTELHOUSEUI_KUBE_TOKEN }}

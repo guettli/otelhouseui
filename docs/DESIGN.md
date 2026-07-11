@@ -1,4 +1,4 @@
-# otelhouseui — design
+# otelhouseview — design
 
 ## Goal
 
@@ -74,10 +74,10 @@ emit (OTLP) → OTel Collector → ClickHouse → genreport → report.json
   the clickhouseexporter tables (`otel_logs`, `otel_traces`,
   `otel_metrics_gauge`) and fails loudly rather than emit a partial report.
 - **Upload** — on pushes to `main`, the report is written into the
-  `otelhouseui-report` ConfigMap (namespace `otelhouseui`) via a
+  `otelhouseview-report` ConfigMap (namespace `otelhouseview`) via a
   ServiceAccount token whose RBAC is limited to that one ConfigMap kind in that
   namespace. A caddy Deployment mounts the ConfigMap and serves it. The kube
-  manifests live in the `guettli/gitops` repo (`k8s/plain/otelhouseui`).
+  manifests live in the `guettli/gitops` repo (`k8s/plain/otelhouseview`).
 
 Why Svelte here when the query UI is React (per Stack above): the report is a
 throwaway single-file render with no shared runtime, so it does not couple to

@@ -1,4 +1,4 @@
-# Working in otelhouseui
+# Working in otelhouseview
 
 Stack: Go (backend + embedded SPA), `clickhouse-go/v2`, SQLite, TS/React SPA
 (CodeMirror 6, ECharts). Single binary; SPA embedded via `go:embed`.

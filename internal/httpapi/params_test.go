@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/guettli/otelhouseui/internal/store"
+	"github.com/guettli/otelhouseview/internal/store"
 )
 
 func TestBindParams_typeCoercion(t *testing.T) {

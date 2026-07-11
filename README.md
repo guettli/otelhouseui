@@ -1,4 +1,4 @@
-# otelhouseui
+# otelhouseview
 
 A lightweight UI to **query and visualize OpenTelemetry data** (logs, metrics, traces)
 stored in ClickHouse by the OpenTelemetry Collector's
@@ -30,7 +30,7 @@ exceed them. Saved-query params bind via ClickHouse native parameters
 
 ## Static report pipeline (CI)
 
-Alongside the interactive UI, otelhouseui ships a **static report** path: a
+Alongside the interactive UI, otelhouseview ships a **static report** path: a
 self-contained HTML report (Svelte + Vite, `ui/`) rendered entirely from real
 OTel data, with no live backend. The Dagger CI pipeline (`ci/`) is the single
 source of truth and, end to end:
@@ -40,7 +40,7 @@ source of truth and, end to end:
 3. runs `ci/cmd/genreport` to query ClickHouse and write `report.json`;
 4. bakes that JSON into a single `dist/index.html` via the Svelte build;
 5. on pushes to `main`, uploads the report into the cluster's
-   `otelhouseui-report` ConfigMap, served by a caddy Deployment.
+   `otelhouseview-report` ConfigMap, served by a caddy Deployment.
 
 `make ci` runs exactly what GitHub Actions runs (needs a reachable Dagger
 engine). `make ui-build` builds the report locally against the committed sample

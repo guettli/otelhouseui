@@ -1,4 +1,4 @@
-// The Dagger pipeline in ci/ is the single source of truth for otelhouseui CI.
+// The Dagger pipeline in ci/ is the single source of truth for otelhouseview CI.
 // `make ci` (or `cd ci && go run .`) runs locally exactly what GitHub Actions
 // runs, so a green local run implies a green CI run.
 //
@@ -12,7 +12,7 @@
 //  3. Svelte build: a node container bakes report.json into the single-file
 //     static HTML report (ui/ → dist/index.html).
 //  4. Upload (push to main only): the report is written into the
-//     `otelhouseui-report` ConfigMap in the cluster via a scoped kubectl token,
+//     `otelhouseview-report` ConfigMap in the cluster via a scoped kubectl token,
 //     where a caddy Deployment serves it.
 package main
 
@@ -58,8 +58,8 @@ func pipeline(ctx context.Context) error {
 		Exclude: []string{".git/", "ui/node_modules/", "ui/dist/", "web/node_modules/"},
 	})
 
-	goMod := client.CacheVolume("otelhouseui-go-mod")
-	goBuild := client.CacheVolume("otelhouseui-go-build")
+	goMod := client.CacheVolume("otelhouseview-go-mod")
+	goBuild := client.CacheVolume("otelhouseview-go-build")
 
 	clickhouse := client.Container().
 		From("clickhouse/clickhouse-server:25.5").
@@ -96,7 +96,7 @@ func pipeline(ctx context.Context) error {
 			return fmt.Errorf("ci: %v: %w", step, err)
 		}
 	}
-	// Same checks for the otelhouseui service module at the repo root.
+	// Same checks for the otelhouseview service module at the repo root.
 	// CGO is off so paulmach/orb (an indirect clickhouse-go dep) picks its
 	// pure-Go path — the alpine image has no C toolchain.
 	appBase := goBase.WithWorkdir("/src").WithEnvVariable("CGO_ENABLED", "0")
@@ -182,11 +182,11 @@ func runE2E(
 	return harness.File("/out/report.json"), nil
 }
 
-// runWebTests runs `pnpm install` + `pnpm run test` for the otelhouseui
+// runWebTests runs `pnpm install` + `pnpm run test` for the otelhouseview
 // service SPA under web/. The vitest suite covers autoViz.ts (the auto-chart
 // heuristic on which the whole "grid or line" UX pivots).
 func runWebTests(ctx context.Context, client *dagger.Client, src *dagger.Directory) (*dagger.Container, error) {
-	pnpmStore := client.CacheVolume("otelhouseui-pnpm-store")
+	pnpmStore := client.CacheVolume("otelhouseview-pnpm-store")
 	return client.Container().
 		From("node:22-alpine").
 		WithMountedCache("/root/.local/share/pnpm/store", pnpmStore).
@@ -202,7 +202,7 @@ func runWebTests(ctx context.Context, client *dagger.Client, src *dagger.Directo
 // buildReport bakes report.json into ui/src/lib/report-data.json and runs the
 // Vite/Svelte build, returning the single self-contained dist/index.html.
 func buildReport(client *dagger.Client, src *dagger.Directory, reportJSON *dagger.File) *dagger.File {
-	pnpmStore := client.CacheVolume("otelhouseui-pnpm-store")
+	pnpmStore := client.CacheVolume("otelhouseview-pnpm-store")
 	return client.Container().
 		From("node:22-alpine").
 		WithMountedCache("/root/.local/share/pnpm/store", pnpmStore).
@@ -216,10 +216,10 @@ func buildReport(client *dagger.Client, src *dagger.Directory, reportJSON *dagge
 		File("/app/dist/index.html")
 }
 
-// uploadReport writes index.html into the otelhouseui-report ConfigMap using a
+// uploadReport writes index.html into the otelhouseview-report ConfigMap using a
 // scoped ServiceAccount token. The token and CA come from GitHub secrets and
 // are passed as Dagger secrets so they never appear in logs. RBAC on the token
-// is limited to configmaps in the otelhouseui namespace.
+// is limited to configmaps in the otelhouseview namespace.
 func uploadReport(ctx context.Context, client *dagger.Client, indexHTML *dagger.File) error {
 	server := os.Getenv("OTELHOUSEUI_KUBE_SERVER")
 	tokenRaw := os.Getenv("OTELHOUSEUI_KUBE_TOKEN")
@@ -283,18 +283,18 @@ echo "[e2e] report.json ready"
 `
 
 // uploadScript configures kubectl from a bearer token + CA and writes the
-// report into the otelhouseui-report ConfigMap (create-or-update). caddy mounts
+// report into the otelhouseview-report ConfigMap (create-or-update). caddy mounts
 // that ConfigMap and serves the updated file after kubelet propagates it.
 const uploadScript = `set -eu
 echo "$KUBE_CA_B64" | base64 -d > /tmp/ca.crt
 kubectl config set-cluster c --server="$KUBE_SERVER" --certificate-authority=/tmp/ca.crt --embed-certs=true >/dev/null
 kubectl config set-credentials u --token="$KUBE_TOKEN" >/dev/null
-kubectl config set-context ctx --cluster=c --user=u --namespace=otelhouseui >/dev/null
+kubectl config set-context ctx --cluster=c --user=u --namespace=otelhouseview >/dev/null
 kubectl config use-context ctx >/dev/null
 
-echo "[upload] applying otelhouseui-report ConfigMap ($(wc -c < /work/index.html) bytes)"
-kubectl create configmap otelhouseui-report \
+echo "[upload] applying otelhouseview-report ConfigMap ($(wc -c < /work/index.html) bytes)"
+kubectl create configmap otelhouseview-report \
   --from-file=index.html=/work/index.html \
-  -n otelhouseui --dry-run=client -o yaml | kubectl apply -f -
+  -n otelhouseview --dry-run=client -o yaml | kubectl apply -f -
 echo "[upload] done"
 `

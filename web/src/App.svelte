@@ -12,7 +12,7 @@
     <div class="brand">
       <span class="logo">◇</span>
       <div>
-        <h1>otelhouseui</h1>
+        <h1>otelhouseview</h1>
         <p class="sub">Query OpenTelemetry data in ClickHouse.</p>
       </div>
     </div>

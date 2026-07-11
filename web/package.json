@@ -1,10 +1,10 @@
 {
-  "name": "otelhouseui-web",
+  "name": "otelhouseview-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "packageManager": "pnpm@9.15.4",
-  "description": "otelhouseui SPA: CodeMirror 6 SQL editor + ECharts auto time-series chart. Embedded into the Go binary at build time.",
+  "description": "otelhouseview SPA: CodeMirror 6 SQL editor + ECharts auto time-series chart. Embedded into the Go binary at build time.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

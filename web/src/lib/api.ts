@@ -1,4 +1,4 @@
-// Thin wrapper over the otelhouseui HTTP API. Kept minimal — the SPA is small
+// Thin wrapper over the otelhouseview HTTP API. Kept minimal — the SPA is small
 // enough that generated clients or fetch libraries would be overkill.
 
 export interface Column {

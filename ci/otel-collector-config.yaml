@@ -1,4 +1,4 @@
-# OpenTelemetry Collector config for the otelhouseui CI harness.
+# OpenTelemetry Collector config for the otelhouseview CI harness.
 #
 # The upstream clickhouseexporter (create_schema: true) owns the
 # otel_logs / otel_traces / otel_metrics_* tables and creates them on first

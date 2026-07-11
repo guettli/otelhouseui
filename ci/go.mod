@@ -1,4 +1,4 @@
-module github.com/guettli/otelhouseui/ci
+module github.com/guettli/otelhouseview/ci
 
 go 1.26.3
 

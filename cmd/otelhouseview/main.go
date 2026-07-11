@@ -1,4 +1,4 @@
-// Command otelhouseui runs the query + visualise UI as a single binary.
+// Command otelhouseview runs the query + visualise UI as a single binary.
 //
 // The binary bundles the SPA (Svelte + CodeMirror + ECharts), talks to a
 // read-only ClickHouse user for all queries, and persists saved query
@@ -19,12 +19,12 @@ import (
 	"syscall"
 	"time"
 
-	otelhouseui "github.com/guettli/otelhouseui"
-	"github.com/guettli/otelhouseui/internal/ch"
-	"github.com/guettli/otelhouseui/internal/config"
-	"github.com/guettli/otelhouseui/internal/httpapi"
-	"github.com/guettli/otelhouseui/internal/starters"
-	"github.com/guettli/otelhouseui/internal/store"
+	otelhouseview "github.com/guettli/otelhouseview"
+	"github.com/guettli/otelhouseview/internal/ch"
+	"github.com/guettli/otelhouseview/internal/config"
+	"github.com/guettli/otelhouseview/internal/httpapi"
+	"github.com/guettli/otelhouseview/internal/starters"
+	"github.com/guettli/otelhouseview/internal/store"
 )
 
 func main() {
@@ -60,7 +60,7 @@ func run() error {
 		return fmt.Errorf("seed starters: %w", err)
 	}
 
-	web, err := fs.Sub(otelhouseui.WebFS(), "web/build")
+	web, err := fs.Sub(otelhouseview.WebFS(), "web/build")
 	if err != nil {
 		return fmt.Errorf("embed sub: %w", err)
 	}
