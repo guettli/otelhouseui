@@ -18,12 +18,12 @@ func TestRound2(t *testing.T) {
 }
 
 func TestEnvOr(t *testing.T) {
-	t.Setenv("OTELHOUSEUI_TEST_KEY", "")
-	if got := envOr("OTELHOUSEUI_TEST_KEY", "fallback"); got != "fallback" {
+	t.Setenv("OTELHOUSEVIEW_TEST_KEY", "")
+	if got := envOr("OTELHOUSEVIEW_TEST_KEY", "fallback"); got != "fallback" {
 		t.Errorf("empty env should fall back, got %q", got)
 	}
-	t.Setenv("OTELHOUSEUI_TEST_KEY", "value")
-	if got := envOr("OTELHOUSEUI_TEST_KEY", "fallback"); got != "value" {
+	t.Setenv("OTELHOUSEVIEW_TEST_KEY", "value")
+	if got := envOr("OTELHOUSEVIEW_TEST_KEY", "fallback"); got != "value" {
 		t.Errorf("set env should win, got %q", got)
 	}
 }

@@ -120,9 +120,9 @@ func build(ctx context.Context, conn driver.Conn) (*report, error) {
 	rep := &report{
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 		Source: source{
-			Repo:   envOr("OTELHOUSEUI_REPO", "guettli/otelhouseview"),
-			Commit: envOr("OTELHOUSEUI_COMMIT", "0000000000000000000000000000000000000000"),
-			RunURL: envOr("OTELHOUSEUI_RUN_URL", "https://github.com/guettli/otelhouseview"),
+			Repo:   envOr("OTELHOUSEVIEW_REPO", "guettli/otelhouseview"),
+			Commit: envOr("OTELHOUSEVIEW_COMMIT", "0000000000000000000000000000000000000000"),
+			RunURL: envOr("OTELHOUSEVIEW_RUN_URL", "https://github.com/guettli/otelhouseview"),
 		},
 		LogVolume:   []logBucket{},
 		LogSeverity: []sevCount{},

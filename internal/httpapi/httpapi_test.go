@@ -73,7 +73,7 @@ func do(t *testing.T, method, url, body string) *http.Response {
 
 func decode(t *testing.T, res *http.Response, into any) {
 	t.Helper()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if err := json.NewDecoder(res.Body).Decode(into); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -229,7 +229,7 @@ func TestSPAFallback(t *testing.T) {
 func itoa(i int64) string { return strconv.FormatInt(i, 10) }
 
 func readBody(res *http.Response) string {
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	buf := &bytes.Buffer{}
 	_, _ = buf.ReadFrom(res.Body)
 	return buf.String()
