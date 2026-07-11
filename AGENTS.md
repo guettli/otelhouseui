@@ -1,6 +1,6 @@
 # Working in otelhouseview
 
-Stack: Go (backend + embedded SPA), `clickhouse-go/v2`, SQLite, TS/React SPA
+Stack: Go (backend + embedded SPA), `clickhouse-go/v2`, SQLite, TS/Svelte 5 SPA
 (CodeMirror 6, ECharts). Single binary; SPA embedded via `go:embed`.
 
 Read [docs/DESIGN.md](docs/DESIGN.md) before adding features — it fixes the architecture.

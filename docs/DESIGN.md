@@ -40,8 +40,9 @@ saved_query(id, name, description, sql_template, params_json, default_viz,
 
 ## Stack
 
-Go + `clickhouse-go/v2`; embedded TS SPA (CodeMirror 6 SQL editor, ECharts);
-SQLite for saved queries + sessions. Single binary, embedded SPA (like agentloop).
+Go + `clickhouse-go/v2`; embedded Svelte 5 SPA (CodeMirror 6 SQL editor,
+ECharts); SQLite for saved queries + sessions. Single binary, embedded SPA
+(like agentloop).
 
 ## Out of scope for v1
 
@@ -79,6 +80,11 @@ emit (OTLP) → OTel Collector → ClickHouse → genreport → report.json
   namespace. A caddy Deployment mounts the ConfigMap and serves it. The kube
   manifests live in the `guettli/gitops` repo (`k8s/plain/otelhouseview`).
 
-Why Svelte here when the query UI is React (per Stack above): the report is a
-throwaway single-file render with no shared runtime, so it does not couple to
-the query SPA. The query SPA remains React as designed.
+Why `ui/` and `web/` are two apps: both are Svelte 5, so the split is not a
+framework boundary — it is a delivery boundary. `web/` is a live SPA that
+fetches from the Go service; `ui/` bakes its data in at build time and must
+render as one offline HTML file with no backend, which rules out the shared
+API client and the router. What they *could* share is the chart layer
+(`web/src/lib/chartOption.ts` against `ui/src/lib/Sparkline.svelte` and
+`StackedTimeSeries.svelte`); that is worth extracting once the report's chart
+needs stop moving.
