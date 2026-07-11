@@ -39,6 +39,17 @@ recent, err := store.ListTraces(ctx, 50)         // newest-first summaries
 `MemoryStore` is the in-process fake, so consumers can test their rendering
 without a live ClickHouse.
 
+`ciview` renders a trace as a self-contained HTML page — a Gantt waterfall, a
+collapsible span tree, and the logs emitted under each span, with no backend
+and no framework. Mount the bytes on any route:
+
+```go
+import "github.com/guettli/otelhouseview/ciview"
+
+page, err := ciview.RenderTrace(trace)        // one trace, full waterfall
+index, err := ciview.RenderIndex(recent)      // listing of recent traces
+```
+
 **Tenancy: the package is deliberately tenant-blind.** In a multi-tenant
 deployment the isolation boundary is the ClickHouse identity in the DSN — the
 [otelhouse](https://github.com/guettli/otelhouse) gateway stamps
@@ -50,7 +61,6 @@ boundary without being one.
 ## Roadmap (not in v1)
 
 - AI-assisted query authoring (agent restricted to a read-only ClickHouse MCP tool).
-- Trace waterfall view.
 - Multi-chart dashboards.
 
 ## Static report pipeline (CI)

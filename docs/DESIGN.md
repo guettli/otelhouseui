@@ -49,7 +49,8 @@ SQLite for saved queries + sessions. Single binary, embedded SPA (like agentloop
   MCP tool, no shell/fs, no `--approve-all`. Rationale: OTel rows are
   attacker-influenced content, so least-privilege bounds prompt-injection blast
   radius to "ran a SELECT".
-- **Trace waterfall** (phase 2).
+- ~~**Trace waterfall** (phase 2).~~ Shipped as the `ciview` package — it
+  already existed inside agentloop and was moved here rather than rewritten.
 - **Multi-chart dashboards** (phase 2).
 
 ## Static report pipeline (added)

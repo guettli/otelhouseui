@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CI run 00112233445566778899aabbccddeeff</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --bg-elev: #131722;
+    --bg-elev-2: #1a2030;
+    --border: #232a3a;
+    --border-strong: #2d3548;
+    --text: #e6e9f2;
+    --text-muted: #8a93a8;
+    --text-dim: #5b6478;
+    --accent: #6aa8ff;
+    --accent-glow: rgba(106, 168, 255, 0.35);
+    --ok: #3ddc97;
+    --ok-glow: rgba(61, 220, 151, 0.35);
+    --err: #ff5c7a;
+    --err-glow: rgba(255, 92, 122, 0.4);
+    --warn: #ffb547;
+    --warn-glow: rgba(255, 181, 71, 0.35);
+    --info: #6aa8ff;
+    --debug: #8a93a8;
+    --trace: #5b6478;
+    --font: "Inter", "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: var(--font);
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(900px 500px at 80% -10%, rgba(106, 168, 255, 0.08), transparent 60%),
+      radial-gradient(700px 400px at -10% 30%, rgba(61, 220, 151, 0.05), transparent 60%),
+      var(--bg);
+    min-height: 100vh;
+  }
+  code, pre { font-family: var(--mono); }
+  nav { margin-bottom: 1.25rem; font-size: 0.9rem; }
+  nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.4rem;
+    border: 1px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+  }
+  nav a:hover { color: var(--text); border-color: var(--border); background: var(--bg-elev); }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+    letter-spacing: -0.01em;
+  }
+  h1 code {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    background: var(--bg-elev);
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--border);
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    align-items: center;
+  }
+  .meta strong { color: var(--text); font-weight: 600; }
+  .meta .sep { color: var(--text-dim); }
+  .meta .msg { flex-basis: 100%; color: var(--err); font-family: var(--mono); font-size: 0.85rem; }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.15em 0.7em;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    transition: box-shadow 150ms ease, transform 150ms ease;
+  }
+  .status::before {
+    content: "";
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    display: inline-block;
+    background: currentColor;
+    box-shadow: 0 0 0.6em currentColor;
+  }
+  .status.ok { color: var(--ok); background: rgba(61, 220, 151, 0.1); border-color: rgba(61, 220, 151, 0.35); box-shadow: 0 0 14px var(--ok-glow); }
+  .status.error { color: var(--err); background: rgba(255, 92, 122, 0.1); border-color: rgba(255, 92, 122, 0.4); box-shadow: 0 0 14px var(--err-glow); }
+  .status.unset { color: var(--text-muted); background: var(--bg-elev-2); border-color: var(--border); }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    position: sticky;
+    top: 0.5rem;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+  .controls button, .controls input, .controls select {
+    font: inherit;
+    color: var(--text);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+    transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  }
+  .controls button { cursor: pointer; }
+  .controls button:hover, .controls select:hover { border-color: var(--accent); background: #1f263a; }
+  .controls input:focus, .controls select:focus, .controls button:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .controls input[type="search"] { flex: 1 1 14rem; min-width: 10rem; }
+  .controls .group-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 0.25rem;
+  }
+  .controls .filter-counts { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); }
+
+  section.spans { display: flex; flex-direction: column; gap: 0.3rem; }
+
+  details.span-row {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0;
+    transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+  }
+  details.span-row:hover { border-color: var(--border-strong); }
+  details.span-row[open] { background: var(--bg-elev-2); border-color: var(--border-strong); }
+  details.span-row > summary {
+    cursor: pointer;
+    padding: 0.55rem 0.85rem;
+    border-radius: 0.5rem;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    transition: background 120ms ease;
+  }
+  details.span-row > summary::-webkit-details-marker { display: none; }
+  details.span-row > summary::before {
+    content: "›";
+    color: var(--text-dim);
+    font-size: 1rem;
+    display: inline-block;
+    width: 0.8em;
+    transition: transform 150ms ease, color 150ms ease;
+  }
+  details.span-row[open] > summary::before { transform: rotate(90deg); color: var(--accent); }
+  details.span-row > summary:hover { background: rgba(106, 168, 255, 0.06); }
+  .span-summary { display: inline-flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+  .span-name { font-weight: 500; color: var(--text); }
+  .span-duration {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-family: var(--mono);
+    background: var(--bg);
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.3rem;
+    border: 1px solid var(--border);
+  }
+
+  .attributes {
+    margin: 0;
+    padding: 0.5rem 0.85rem 0.75rem 2rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .attributes table { border-collapse: collapse; }
+  .attributes td { padding: 0.15rem 0.8rem 0.15rem 0; vertical-align: top; }
+  .attributes td.k { color: var(--text-dim); font-family: var(--mono); font-size: 0.8rem; }
+  .attributes td.v { color: var(--text); font-family: var(--mono); font-size: 0.8rem; word-break: break-word; }
+
+  details.logs {
+    margin: 0 0.85rem 0.75rem 2rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+  }
+  details.logs > summary {
+    cursor: pointer;
+    padding: 0.4rem 0.7rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    list-style: none;
+    transition: color 120ms ease, background 120ms ease;
+  }
+  details.logs > summary::-webkit-details-marker { display: none; }
+  details.logs > summary:hover { color: var(--text); background: var(--bg-elev-2); }
+  details.logs > summary::before { content: "▸ "; color: var(--text-dim); transition: color 120ms ease; }
+  details.logs[open] > summary::before { content: "▾ "; color: var(--accent); }
+
+  .log-list {
+    padding: 0.4rem 0;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    max-height: 28rem;
+    overflow: auto;
+    border-top: 1px solid var(--border);
+  }
+  .log-line {
+    display: grid;
+    grid-template-columns: 5rem 11.5rem 1fr;
+    gap: 0.6rem;
+    padding: 0.2rem 0.7rem;
+    border-left: 3px solid transparent;
+    transition: background 100ms ease;
+  }
+  .log-line:hover { background: var(--bg-elev-2); }
+  .log-line .sev {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .log-line .ts { color: var(--text-dim); }
+  .log-line .body { color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .log-line.sev-error { border-left-color: var(--err); }
+  .log-line.sev-error .sev { color: var(--err); }
+  .log-line.sev-warn { border-left-color: var(--warn); }
+  .log-line.sev-warn .sev { color: var(--warn); }
+  .log-line.sev-info { border-left-color: var(--info); }
+  .log-line.sev-info .sev { color: var(--info); }
+  .log-line.sev-debug .sev { color: var(--debug); }
+  .log-line.sev-trace .sev { color: var(--trace); }
+  .log-line.hidden { display: none; }
+  .log-empty {
+    padding: 0.5rem 0.7rem;
+    color: var(--text-dim);
+    font-style: italic;
+    font-family: var(--font);
+    font-size: 0.8rem;
+  }
+
+  .span-row.dimmed { opacity: 0.4; }
+  .span-row.pulse { animation: pulse-row 1.2s ease; }
+  @keyframes pulse-row {
+    0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
+    30%  { box-shadow: 0 0 0 4px var(--accent-glow); }
+    100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+  }
+
+  section.waterfall {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    overflow: hidden;
+  }
+  .waterfall-legend {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .wf-list { display: flex; flex-direction: column; gap: 0.15rem; }
+  .wf-row {
+    display: grid;
+    grid-template-columns: minmax(10rem, 22rem) 1fr;
+    gap: 0.6rem;
+    align-items: center;
+    font-size: 0.78rem;
+    padding: 0.15rem 0;
+  }
+  .wf-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+  .wf-name .wf-indent { color: var(--text-dim); }
+  .wf-track {
+    position: relative;
+    height: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.3rem;
+    overflow: hidden;
+  }
+  .wf-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--accent);
+    border-radius: 0.15rem;
+    cursor: pointer;
+    min-width: 2px;
+    transition: filter 120ms ease, transform 120ms ease;
+  }
+  .wf-bar:hover, .wf-bar:focus-visible {
+    outline: none;
+    filter: brightness(1.15);
+    transform: scaleY(1.15);
+  }
+  .wf-bar.ok { background: var(--ok); box-shadow: 0 0 6px var(--ok-glow); }
+  .wf-bar.error { background: var(--err); box-shadow: 0 0 6px var(--err-glow); }
+  .wf-bar.unset { background: var(--accent); }
+  .wf-bar-label {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0.4rem;
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<nav><a href="./">&larr; all runs</a></nav>
+<h1>CI run <code>00112233445566778899aabbccddeeff</code></h1>
+
+<div class="meta">
+  <span class="status ok">ok</span>
+  <strong>build</strong>
+  <span class="sep">·</span> <span>service: dagger</span>
+  <span class="sep">·</span> <span>duration: 2s</span>
+  <span class="sep">·</span> <span>started: 2026-06-01 12:00:00 UTC</span>
+  <span class="sep">·</span> <span>ended: 2026-06-01 12:00:02 UTC</span>
+  
+</div>
+
+
+
+<section class="waterfall" aria-label="span waterfall">
+  <div class="waterfall-legend">Waterfall · click a bar to jump to its span</div>
+  <div class="wf-list">
+  
+    <div class="wf-row">
+      <div class="wf-name" title="build" style="padding-left: 0rem;">build</div>
+      <div class="wf-track">
+        <a class="wf-bar ok"
+           href="#span-0011223344556677"
+           data-span-id="0011223344556677"
+           title="build · 2s"
+           style="left: 0.0000%; width: 100.0000%;"
+           aria-label="build — duration 2s">
+          <span class="wf-bar-label">2s</span>
+        </a>
+      </div>
+    </div>
+  
+    <div class="wf-row">
+      <div class="wf-name" title="go test" style="padding-left: 1rem;">go test</div>
+      <div class="wf-track">
+        <a class="wf-bar ok"
+           href="#span-8899aabbccddeeff"
+           data-span-id="8899aabbccddeeff"
+           title="go test · 1.8s"
+           style="left: 5.0000%; width: 90.0000%;"
+           aria-label="go test — duration 1.8s">
+          <span class="wf-bar-label">1.8s</span>
+        </a>
+      </div>
+    </div>
+  
+  </div>
+</section>
+
+
+<div class="controls" role="toolbar" aria-label="trace controls">
+  <button type="button" id="expand-all">Expand all</button>
+  <button type="button" id="collapse-all">Collapse all</button>
+  <span class="group-label">Logs</span>
+  <input type="search" id="log-search" placeholder="Search logs…" aria-label="Search logs">
+  <select id="severity-filter" aria-label="Filter by severity">
+    <option value="all">All severities</option>
+    <option value="warn+">Warnings + errors</option>
+    <option value="error">Errors only</option>
+  </select>
+  <span class="filter-counts" id="filter-counts" aria-live="polite"></span>
+</div>
+
+<section class="spans">
+
+<details class="span-row" id="span-0011223344556677" style="margin-left: 0rem;">
+  <summary>
+    <span class="span-summary">
+      <span class="span-name">build</span>
+      <span class="span-duration">2s</span>
+      <span class="status ok">ok</span>
+    </span>
+  </summary>
+  <div class="attributes">
+    <table>
+      <tr><td class="k">span_id</td><td class="v"><code>0011223344556677</code></td></tr>
+      <tr><td class="k">started</td><td class="v">2026-06-01 12:00:00 UTC</td></tr>
+      <tr><td class="k">ended</td><td class="v">2026-06-01 12:00:02 UTC</td></tr>
+      
+      
+      
+        <tr><td class="k">repo</td><td class="v">guettli/agentloop</td></tr>
+      
+    </table>
+  </div>
+  
+</details>
+
+<details class="span-row" id="span-8899aabbccddeeff" style="margin-left: 1rem;">
+  <summary>
+    <span class="span-summary">
+      <span class="span-name">go test</span>
+      <span class="span-duration">1.8s</span>
+      <span class="status ok">ok</span>
+    </span>
+  </summary>
+  <div class="attributes">
+    <table>
+      <tr><td class="k">span_id</td><td class="v"><code>8899aabbccddeeff</code></td></tr>
+      <tr><td class="k">started</td><td class="v">2026-06-01 12:00:00 UTC</td></tr>
+      <tr><td class="k">ended</td><td class="v">2026-06-01 12:00:01 UTC</td></tr>
+      
+      
+      
+    </table>
+  </div>
+  
+  <details class="logs">
+    <summary>Logs (1)</summary>
+    <div class="log-list">
+      <div class="log-line sev-info" data-severity="info"><span class="sev">INFO</span><span class="ts">2026-06-01 12:00:00 UTC</span><span class="body">PASS: TestSomething</span></div>
+      
+    </div>
+  </details>
+  
+</details>
+
+</section>
+
+<script>
+(function () {
+  var spans = Array.prototype.slice.call(document.querySelectorAll("details.span-row"));
+  var logBlocks = Array.prototype.slice.call(document.querySelectorAll("details.logs"));
+  var searchInput = document.getElementById("log-search");
+  var sevSelect = document.getElementById("severity-filter");
+  var counts = document.getElementById("filter-counts");
+  var sevRank = { error: 3, warn: 2, info: 1, debug: 0, trace: 0, default: 0 };
+
+  function setOpen(elements, open) {
+    elements.forEach(function (el) { el.open = open; });
+  }
+
+  document.getElementById("expand-all").addEventListener("click", function () {
+    setOpen(spans, true);
+    setOpen(logBlocks, true);
+  });
+  document.getElementById("collapse-all").addEventListener("click", function () {
+    setOpen(logBlocks, false);
+    setOpen(spans, false);
+  });
+
+  function applyFilter() {
+    var query = (searchInput.value || "").trim().toLowerCase();
+    var mode = sevSelect.value;
+    var shown = 0, total = 0;
+    logBlocks.forEach(function (block) {
+      var lines = block.querySelectorAll(".log-line");
+      var visibleInBlock = 0;
+      lines.forEach(function (line) {
+        total++;
+        var sev = line.getAttribute("data-severity") || "default";
+        var rank = sevRank[sev] !== undefined ? sevRank[sev] : 0;
+        var passSeverity = true;
+        if (mode === "warn+") passSeverity = rank >= 2;
+        else if (mode === "error") passSeverity = rank >= 3;
+        var passSearch = query === "" || line.textContent.toLowerCase().indexOf(query) !== -1;
+        var visible = passSeverity && passSearch;
+        line.classList.toggle("hidden", !visible);
+        if (visible) { visibleInBlock++; shown++; }
+      });
+      var empty = block.querySelector(".log-empty");
+      if (visibleInBlock === 0 && (query !== "" || mode !== "all")) {
+        if (!empty) {
+          empty = document.createElement("div");
+          empty.className = "log-empty";
+          empty.textContent = "No logs match the current filter.";
+          block.querySelector(".log-list").appendChild(empty);
+        }
+        empty.style.display = "";
+      } else if (empty) {
+        empty.style.display = "none";
+      }
+    });
+    if (total === 0) {
+      counts.textContent = "";
+    } else if (query === "" && mode === "all") {
+      counts.textContent = total + " log " + (total === 1 ? "line" : "lines");
+    } else {
+      counts.textContent = shown + " / " + total + " shown";
+    }
+  }
+
+  searchInput.addEventListener("input", applyFilter);
+  sevSelect.addEventListener("change", applyFilter);
+  applyFilter();
+
+  function focusSpan(id) {
+    var target = document.getElementById("span-" + id);
+    if (!target) return;
+    target.open = true;
+    var logs = target.querySelector("details.logs");
+    if (logs) logs.open = true;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.classList.remove("pulse");
+    
+    void target.offsetWidth;
+    target.classList.add("pulse");
+  }
+
+  Array.prototype.slice.call(document.querySelectorAll(".wf-bar")).forEach(function (bar) {
+    bar.addEventListener("click", function (ev) {
+      var id = bar.getAttribute("data-span-id");
+      if (!id) return;
+      ev.preventDefault();
+      focusSpan(id);
+      if (history.replaceState) history.replaceState(null, "", "#span-" + id);
+    });
+  });
+
+  if (location.hash && location.hash.indexOf("#span-") === 0) {
+    focusSpan(location.hash.slice("#span-".length));
+  }
+})();
+</script>
+</body>
+</html>

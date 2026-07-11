@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CI runs</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --bg-elev: #131722;
+    --bg-elev-2: #1a2030;
+    --border: #232a3a;
+    --border-strong: #2d3548;
+    --text: #e6e9f2;
+    --text-muted: #8a93a8;
+    --text-dim: #5b6478;
+    --accent: #6aa8ff;
+    --ok: #3ddc97;
+    --ok-glow: rgba(61, 220, 151, 0.35);
+    --err: #ff5c7a;
+    --err-glow: rgba(255, 92, 122, 0.4);
+    --font: "Inter", "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: var(--font);
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(900px 500px at 80% -10%, rgba(106, 168, 255, 0.08), transparent 60%),
+      radial-gradient(700px 400px at -10% 30%, rgba(61, 220, 151, 0.05), transparent 60%),
+      var(--bg);
+    min-height: 100vh;
+  }
+  code { font-family: var(--mono); }
+  h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 1.25rem 0; letter-spacing: -0.01em; }
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    overflow: hidden;
+  }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); }
+  th {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--bg-elev-2);
+  }
+  tbody tr { transition: background 120ms ease; }
+  tbody tr:hover { background: rgba(106, 168, 255, 0.05); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.status { width: 6rem; }
+  td.trace { font-family: var(--mono); font-size: 0.8rem; }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.15em 0.7em;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+  .status-pill::before {
+    content: "";
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0.6em currentColor;
+  }
+  .status-pill.ok { color: var(--ok); background: rgba(61, 220, 151, 0.1); border-color: rgba(61, 220, 151, 0.35); box-shadow: 0 0 12px var(--ok-glow); }
+  .status-pill.error { color: var(--err); background: rgba(255, 92, 122, 0.1); border-color: rgba(255, 92, 122, 0.4); box-shadow: 0 0 12px var(--err-glow); }
+  .status-pill.unset { color: var(--text-muted); background: var(--bg-elev-2); border-color: var(--border); }
+
+  a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 120ms ease;
+  }
+  a:hover { color: #b1cdff; text-decoration: underline; }
+  .empty {
+    color: var(--text-muted);
+    padding: 2rem;
+    text-align: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+<h1>CI runs</h1>
+
+<div class="card">
+<table>
+  <thead>
+    <tr><th>status</th><th>service</th><th>pipeline</th><th>started</th><th>duration</th><th>trace</th></tr>
+  </thead>
+  <tbody>
+  
+    <tr>
+      <td class="status"><span class="status-pill ok">ok</span></td>
+      <td>dagger</td>
+      <td>build</td>
+      <td>2026-06-01 12:00:00 UTC</td>
+      <td>2s</td>
+      <td class="trace"><a href="./00112233445566778899aabbccddeeff"><code>00112233445566778899aabbccddeeff</code></a></td>
+    </tr>
+  
+  </tbody>
+</table>
+</div>
+
+</body>
+</html>
