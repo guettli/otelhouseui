@@ -76,10 +76,12 @@ emit (OTLP) → OTel Collector → ClickHouse → genreport → report.json
   the clickhouseexporter tables (`otel_logs`, `otel_traces`,
   `otel_metrics_gauge`) and fails loudly rather than emit a partial report.
 - **Upload** — on pushes to `main`, the report is written into the
-  `otelhouseview-report` ConfigMap (namespace `otelhouseview`) via a
+  `otelhouseui-report` ConfigMap (namespace `otelhouseui`) via a
   ServiceAccount token whose RBAC is limited to that one ConfigMap kind in that
   namespace. A caddy Deployment mounts the ConfigMap and serves it. The kube
-  manifests live in the `guettli/gitops` repo (`k8s/plain/otelhouseview`).
+  manifests live in the `guettli/gitops` repo (`k8s/plain/otelhouseui`); the
+  gitops rename to `otelhouseview` has not landed yet, so the CI upload still
+  targets the old slug.
 
 Why `ui/` and `web/` are two apps: both are Svelte 5, so the split is not a
 framework boundary — it is a delivery boundary. `web/` is a live SPA that

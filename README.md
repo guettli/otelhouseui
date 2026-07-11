@@ -75,7 +75,7 @@ source of truth and, end to end:
 3. runs `ci/cmd/genreport` to query ClickHouse and write `report.json`;
 4. bakes that JSON into a single `dist/index.html` via the Svelte build;
 5. on pushes to `main`, uploads the report into the cluster's
-   `otelhouseview-report` ConfigMap, served by a caddy Deployment.
+   `otelhouseui-report` ConfigMap, served by a caddy Deployment.
 
 `make ci` runs exactly what GitHub Actions runs (needs a reachable Dagger
 engine). `make ui-build` builds the report locally against the committed sample

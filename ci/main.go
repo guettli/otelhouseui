@@ -12,8 +12,11 @@
 //  3. Svelte build: a node container bakes report.json into the single-file
 //     static HTML report (ui/ → dist/index.html).
 //  4. Upload (push to main only): the report is written into the
-//     `otelhouseview-report` ConfigMap in the cluster via a scoped kubectl token,
-//     where a caddy Deployment serves it.
+//     `otelhouseui-report` ConfigMap in the cluster via a scoped kubectl token,
+//     where a caddy Deployment serves it. The kube names still carry the old
+//     `otelhouseui` slug: the ServiceAccount RBAC lives in `guettli/gitops` and
+//     has not been renamed yet, so keep the CI upload targeting that namespace
+//     until the gitops rename lands.
 package main
 
 import (
@@ -216,10 +219,10 @@ func buildReport(client *dagger.Client, src *dagger.Directory, reportJSON *dagge
 		File("/app/dist/index.html")
 }
 
-// uploadReport writes index.html into the otelhouseview-report ConfigMap using a
+// uploadReport writes index.html into the otelhouseui-report ConfigMap using a
 // scoped ServiceAccount token. The token and CA come from GitHub secrets and
 // are passed as Dagger secrets so they never appear in logs. RBAC on the token
-// is limited to configmaps in the otelhouseview namespace.
+// is limited to configmaps in the otelhouseui namespace.
 func uploadReport(ctx context.Context, client *dagger.Client, indexHTML *dagger.File) error {
 	server := os.Getenv("OTELHOUSEUI_KUBE_SERVER")
 	tokenRaw := os.Getenv("OTELHOUSEUI_KUBE_TOKEN")
@@ -283,18 +286,18 @@ echo "[e2e] report.json ready"
 `
 
 // uploadScript configures kubectl from a bearer token + CA and writes the
-// report into the otelhouseview-report ConfigMap (create-or-update). caddy mounts
+// report into the otelhouseui-report ConfigMap (create-or-update). caddy mounts
 // that ConfigMap and serves the updated file after kubelet propagates it.
 const uploadScript = `set -eu
 echo "$KUBE_CA_B64" | base64 -d > /tmp/ca.crt
 kubectl config set-cluster c --server="$KUBE_SERVER" --certificate-authority=/tmp/ca.crt --embed-certs=true >/dev/null
 kubectl config set-credentials u --token="$KUBE_TOKEN" >/dev/null
-kubectl config set-context ctx --cluster=c --user=u --namespace=otelhouseview >/dev/null
+kubectl config set-context ctx --cluster=c --user=u --namespace=otelhouseui >/dev/null
 kubectl config use-context ctx >/dev/null
 
-echo "[upload] applying otelhouseview-report ConfigMap ($(wc -c < /work/index.html) bytes)"
-kubectl create configmap otelhouseview-report \
+echo "[upload] applying otelhouseui-report ConfigMap ($(wc -c < /work/index.html) bytes)"
+kubectl create configmap otelhouseui-report \
   --from-file=index.html=/work/index.html \
-  -n otelhouseview --dry-run=client -o yaml | kubectl apply -f -
+  -n otelhouseui --dry-run=client -o yaml | kubectl apply -f -
 echo "[upload] done"
 `
