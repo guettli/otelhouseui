@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/guettli/otelhouseview/internal/store"
+	"github.com/guettli/otelhouseview/explore/internal/store"
 )
 
 // All is the canonical list of built-in saved queries.

@@ -1,5 +1,32 @@
 // Thin wrapper over the otelhouseview HTTP API. Kept minimal — the SPA is small
 // enough that generated clients or fetch libraries would be overkill.
+//
+// Every request URL is built from the *mount base*, because this SPA is served
+// by an embeddable Go handler that a host app may mount under any prefix
+// (agentloop mounts it at /explore). The Go handler substitutes the real base
+// into the index.html it serves, which sets window.__EXPLORE_BASE__. Absolute
+// paths like fetch('/api/query') would 404 against the host app; never
+// reintroduce one.
+
+declare global {
+  interface Window {
+    __EXPLORE_BASE__?: string
+  }
+}
+
+// apiBase returns the mount base, always with a trailing slash. It falls back to
+// '/' when the placeholder was not substituted — which is exactly the case under
+// `vite dev`, where index.html is served by Vite at the root, not by Go.
+export function apiBase(): string {
+  const raw = typeof window === 'undefined' ? undefined : window.__EXPLORE_BASE__
+  if (!raw || raw.includes('__EXPLORE_BASE__')) return '/'
+  return raw.endsWith('/') ? raw : `${raw}/`
+}
+
+// url joins a handler-relative path (with or without a leading slash) onto the base.
+export function url(path: string): string {
+  return apiBase() + path.replace(/^\/+/, '')
+}
 
 export interface Column {
   name: string
@@ -56,7 +83,7 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
 }
 
 export async function runQuery(sql: string, params?: Record<string, unknown>): Promise<QueryResult> {
-  const res = await fetch('/api/query', {
+  const res = await fetch(url('/api/query'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sql, params }),
@@ -65,17 +92,17 @@ export async function runQuery(sql: string, params?: Record<string, unknown>): P
 }
 
 export async function listSaved(): Promise<SavedQuery[]> {
-  const res = await fetch('/api/saved-queries')
+  const res = await fetch(url('/api/saved-queries'))
   return jsonOrThrow<SavedQuery[]>(res)
 }
 
 export async function getSaved(id: number): Promise<SavedQuery> {
-  const res = await fetch(`/api/saved-queries/${id}`)
+  const res = await fetch(url(`/api/saved-queries/${id}`))
   return jsonOrThrow<SavedQuery>(res)
 }
 
 export async function createSaved(q: SavedQueryInput): Promise<SavedQuery> {
-  const res = await fetch('/api/saved-queries', {
+  const res = await fetch(url('/api/saved-queries'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(q),
@@ -84,12 +111,12 @@ export async function createSaved(q: SavedQueryInput): Promise<SavedQuery> {
 }
 
 export async function deleteSaved(id: number): Promise<void> {
-  const res = await fetch(`/api/saved-queries/${id}`, { method: 'DELETE' })
+  const res = await fetch(url(`/api/saved-queries/${id}`), { method: 'DELETE' })
   await jsonOrThrow<void>(res)
 }
 
 export async function runSaved(id: number, params: Record<string, unknown>): Promise<QueryResult> {
-  const res = await fetch(`/api/saved-queries/${id}/run`, {
+  const res = await fetch(url(`/api/saved-queries/${id}/run`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ params }),

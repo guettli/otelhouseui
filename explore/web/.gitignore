@@ -1,0 +1,8 @@
+node_modules/
+*.tsbuildinfo
+
+# build/ is deliberately NOT ignored. It is produced by `pnpm run build` and
+# consumed by go:embed in the explore package, which other repos import as a
+# library — `go get` ships exactly what go:embed can see in the module, and
+# nothing runs pnpm on the importer's side. So the built bundle is committed:
+# re-run `make web` and commit build/ whenever src/ changes.

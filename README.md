@@ -7,20 +7,65 @@ whose stock schema this repo targets (`otel_logs`, `otel_traces`,
 `otel_metrics_{gauge,sum,histogram,exponential_histogram,summary}`).
 The write path is [otelhouse](https://github.com/guettli/otelhouse).
 
-It ships **two** things:
+otelhouseview is a **library, not a service**. It ships **three** Go packages:
 
-1. **A published Go library** — the exported packages
-   [`otelstore`](otelstore) (a read-only, typed ClickHouse client for that
-   schema) and [`ciview`](ciview) (renders a trace as a self-contained HTML
-   page: Gantt waterfall + span tree + logs). Other repos import them:
-   [agentloop](https://github.com/guettli/agentloop) (both) and otelhouse's e2e
-   harness (`otelstore`). See [Go library](#go-library-otelstore--ciview) —
-   these are **API-compat surfaces**, not internals.
-2. **A UI** — a query service + embedded Svelte 5 SPA, plus a static-report
-   pipeline. The deployed report/UI is served at
-   **<https://otelhouseview.thomas-guettler.de>**.
+| Package | What it is |
+| ------- | ---------- |
+| [`otelstore`](otelstore) | Read-only, typed ClickHouse client for that schema (`GetTrace`, `ListTraces`, + an in-memory fake). |
+| [`ciview`](ciview) | Renders a trace as a self-contained HTML page: Gantt waterfall + span tree + logs. |
+| [`explore`](explore) | The **SQL workbench** as an embeddable sub-application: one `http.Handler` serving its own JSON API *and* its own embedded Svelte SPA, mountable under any prefix. |
 
-## What the UI does
+Plus `cmd/otelhouseview`, a standalone binary that mounts `explore` at `/` —
+useful for local dev, **not** the production shape (see below).
+
+## The usage pattern
+
+A **host application** imports these packages, supplies a **tenant-scoped
+ClickHouse DSN**, and mounts `explore` behind **its own** authentication:
+
+```go
+import "github.com/guettli/otelhouseview/explore"
+
+svc, err := explore.New(ctx, explore.Config{
+    DSN:       os.Getenv("CLICKHOUSE_DSN"), // <ns>_ro — the security boundary
+    StorePath: "/data/explore.db",          // saved queries; caller owns the path
+    Prefix:    "/explore",                  // where the host mounts it
+})
+defer svc.Close()
+
+// The host authenticates. explore does not.
+mux.Handle("/explore/", app.RequireSession(http.StripPrefix("/explore", svc.Handler())))
+```
+
+Today's host is [agentloop](https://github.com/guettli/agentloop): it already
+has passkey/WebAuthn sessions, an embedded SPA, an ingress, a TLS cert and a
+per-tenant `CLICKHOUSE_DSN`. Mounting the workbench inside it at `/explore` is
+strictly less machinery than deploying a second service per tenant and building
+all of that a second time.
+
+## Safety model: the DSN is the boundary
+
+`explore` **does no authentication and enforces no tenancy — by construction.**
+It serves an arbitrary-SQL endpoint; mounted naked on a public listener it is a
+SQL console for the internet. The host MUST wrap it.
+
+What makes it safe to hand a tenant arbitrary SQL is not anything in this repo,
+it is the **ClickHouse identity in the DSN**:
+
+- The DSN is a per-tenant `<tenant>_ro` user whose **row policies** are pinned to
+  `ResourceAttributes['tenant'] = '<tenant>'` — so no SQL, however creative, can
+  read another tenant's rows. Tenancy is established at write time by the
+  [otelhouse](https://github.com/guettli/otelhouse) gateway, fail-closed.
+- That user's **server-side settings profile** caps query cost
+  (`max_execution_time`, `max_rows_to_read`, `max_bytes_to_read`,
+  `max_result_rows`, `max_memory_usage`) — so no query can outrun its budget.
+
+Consequently this repo adds **no** tenant predicate and **no** Go-side limits.
+Either would *look* like a security boundary without being one, and would drift
+from the real one. Saved-query params bind via ClickHouse native parameters
+(`{name:Type}`) — never string interpolation.
+
+## What the workbench does
 
 - Run ClickHouse SQL against the OTel tables and get a result grid.
 - Automatically render a time-series chart when a result looks like `(time, [group], value)`.
@@ -29,13 +74,16 @@ It ships **two** things:
 - Ships a starter library of queries for the exporter schema.
 - Renders a trace as a waterfall (that is `ciview`, shipped and exported).
 
-## Safety model
+### Mounting details
 
-The UI connects to ClickHouse as a **read-only** user; execution limits
-(`max_execution_time`, `max_rows_to_read`, `max_bytes_to_read`, `max_result_rows`,
-`max_memory_usage`) live on that user's **server-side profile**, so no query can
-exceed them. Saved-query params bind via ClickHouse native parameters
-(`{name:Type}`) — never string interpolation.
+- **The host strips the prefix** (`http.StripPrefix`). `Config.Prefix` is used
+  only to generate correct absolute URLs (assets, API base) in the served
+  `index.html`. The handler also tolerates the un-stripped case, so a host that
+  mounts `svc.Handler()` directly still works — but `Config.Prefix` must match
+  the real mount point either way.
+- The SPA build (`explore/web/build/`) is **committed**, because `go:embed`
+  ships whatever is in the module and importers do not run pnpm. Re-run
+  `make web` and commit after touching `explore/web/src`.
 
 ## Go library: `otelstore` + `ciview`
 
@@ -66,18 +114,20 @@ index, err := ciview.RenderIndex(recent)      // listing of recent traces
 
 ### These packages have external consumers
 
-`otelstore/` and `ciview/` are **exported API with out-of-repo importers**:
+`otelstore/`, `ciview/` and `explore/` are **exported API with out-of-repo
+importers**:
 
 | Consumer | Imports |
 | -------- | ------- |
-| [agentloop](https://github.com/guettli/agentloop) | `otelstore` + `ciview` |
+| [agentloop](https://github.com/guettli/agentloop) | `otelstore` + `ciview` + `explore` |
 | [otelhouse](https://github.com/guettli/otelhouse) e2e harness | `otelstore` |
 
-Both pin untagged pseudo-versions, so a breaking change to `Store`, `GetTrace`,
-`ListTraces`, `RenderTrace` or `RenderIndex` (signatures, or the `Span` /
-`LogRecord` / `Trace` / `TraceSummary` shapes they carry) breaks them on their
-next `go get -u`. Change these deliberately, additively where possible.
-Everything under `internal/` is private and free to churn.
+They pin untagged pseudo-versions, so a breaking change to `Store`, `GetTrace`,
+`ListTraces`, `RenderTrace`, `RenderIndex` or `explore.New` / `Config` /
+`Handler` / `Close` (signatures, or the `Span` / `LogRecord` / `Trace` /
+`TraceSummary` shapes they carry) breaks them on their next `go get -u`. Change
+these deliberately, additively where possible. Everything under `internal/` —
+including `explore/internal/` — is private and free to churn.
 
 ### Options and the `DB()` escape hatch
 
@@ -117,9 +167,21 @@ tenant.
 - AI-assisted query authoring (agent restricted to a read-only ClickHouse MCP tool).
 - Multi-chart dashboards.
 
+## Deployment shape
+
+There is **no standalone otelhouseview service per tenant, and there will not
+be.** The host app (agentloop) already owns auth, an SPA, an ingress, a TLS cert
+and the per-tenant DSN; a second deployment would rebuild all of it. So:
+
+- `cmd/otelhouseview` exists for **local development** — one process, `PORT` /
+  `CLICKHOUSE_DSN` / `SQLITE_PATH` from the environment, workbench at `/`. It
+  authenticates nobody. Do not put it on a public listener.
+- The public static-report host (`otelhouseview.thomas-guettler.de`) is being
+  **retired**; the report below stays as a CI artifact.
+
 ## Static report pipeline (CI)
 
-Alongside the interactive UI, otelhouseview ships a **static report** path: a
+Alongside the workbench, otelhouseview ships a **static report** path: a
 self-contained HTML report (Svelte + Vite, `ui/`) rendered entirely from real
 OTel data, with no live backend. The Dagger CI pipeline (`ci/`) is the single
 source of truth and, end to end:
@@ -130,7 +192,8 @@ source of truth and, end to end:
 4. bakes that JSON into a single `dist/index.html` via the Svelte build;
 5. on pushes to `main`, uploads the report into the cluster's
    `otelhouseview-report` ConfigMap, served by a caddy Deployment at
-   <https://otelhouseview.thomas-guettler.de>.
+   <https://otelhouseview.thomas-guettler.de> — that public host is being
+   retired; the pipeline's value is the e2e coverage, not the URL.
 
 `make ci` runs exactly what GitHub Actions runs (needs a reachable Dagger
 engine). `make ui-build` builds the report locally against the committed sample

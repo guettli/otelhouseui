@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>otelhouseview</title>
+    <!--
+      The mount base. explore's Go handler substitutes /__EXPLORE_BASE__/ with
+      the prefix it is mounted under before serving this file, and api.ts builds
+      every request URL from it. Under `vite dev` the token is not substituted;
+      api.ts then falls back to "/".
+    -->
+    <script>
+      window.__EXPLORE_BASE__ = '/__EXPLORE_BASE__/'
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
