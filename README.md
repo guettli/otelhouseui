@@ -22,6 +22,31 @@ The UI connects to ClickHouse as a **read-only** user; execution limits
 exceed them. Saved-query params bind via ClickHouse native parameters
 (`{name:Type}`) — never string interpolation.
 
+## Go library: `otelstore`
+
+This repo is the **read path** of the otelhouse pipeline, and its read core is
+importable — so consumers do not each grow their own copy of "SELECT spans out
+of the clickhouseexporter schema":
+
+```go
+import "github.com/guettli/otelhouseview/otelstore"
+
+store, err := otelstore.OpenClickHouse(ctx, dsn) // dsn = a read-only CH user
+trace, err := store.GetTrace(ctx, traceID)       // spans + logs, one trace
+recent, err := store.ListTraces(ctx, 50)         // newest-first summaries
+```
+
+`MemoryStore` is the in-process fake, so consumers can test their rendering
+without a live ClickHouse.
+
+**Tenancy: the package is deliberately tenant-blind.** In a multi-tenant
+deployment the isolation boundary is the ClickHouse identity in the DSN — the
+[otelhouse](https://github.com/guettli/otelhouse) gateway stamps
+`ResourceAttributes['tenant']` at write time, and reads are constrained by a
+row policy bound to a per-tenant read-only user. No query here adds a tenant
+predicate, and none should: a filter in Go would *look* like a security
+boundary without being one.
+
 ## Roadmap (not in v1)
 
 - AI-assisted query authoring (agent restricted to a read-only ClickHouse MCP tool).
