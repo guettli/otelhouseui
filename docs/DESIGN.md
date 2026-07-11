@@ -2,8 +2,14 @@
 
 ## Goal
 
-Query + visualize OTel data in ClickHouse (clickhouseexporter schema) for a small,
-trusted team, one tenant. AI assistance is a later layer, not on the v1 path.
+Query + visualize OTel data in ClickHouse (clickhouseexporter schema) — and
+expose that read core as a Go library other repos import. AI assistance is a
+later layer, not on the v1 path.
+
+Each deployment of the UI/service serves **one tenant**: it is pointed at a
+single ClickHouse read-only identity and has no tenant switcher, no per-request
+tenant, no cross-tenant view. That is a property of the *deployment*, not of the
+data — see [Tenancy](#tenancy).
 
 ## Core substrate
 
@@ -11,7 +17,9 @@ trusted team, one tenant. AI assistance is a later layer, not on the v1 path.
 
 This single path serves metrics charts, log-volume-over-time, and span rate/latency
 without per-signal UIs, and is the exact surface the future AI writes into.
-Traces (waterfall) is the one signal needing a bespoke view — deferred.
+Traces (waterfall) is the one signal needing a bespoke view — it is the single
+carve-out, and it **shipped** as the `ciview` package (see
+[Public packages](#public-packages-otelstore--ciview) and Out of scope below).
 
 ## Auto-chart heuristic
 
@@ -28,9 +36,57 @@ saved_query(id, name, description, sql_template, params_json, default_viz,
 
 `params_json`: `[{name, type (ClickHouse type), label, widget, default}]`
 
+## Public packages: `otelstore/` + `ciview/`
+
+This repo is not only a service. Two packages are **exported API with external
+consumers**:
+
+- **`otelstore/`** — read-only, typed ClickHouse client for the stock
+  clickhouseexporter schema (`Store`, `GetTrace`, `ListTraces`, plus
+  `MemoryStore` as the in-process fake).
+- **`ciview/`** — renders a trace as a self-contained HTML page
+  (`RenderTrace`, `RenderIndex`).
+
+Importers today: **agentloop** (both packages) and **otelhouse**'s e2e harness
+(`otelstore`). Both pin untagged pseudo-versions, so they pick up `main` on
+`go get -u`.
+
+**Consequence, and the rule for anyone working here:** changing the signatures
+of `Store` / `GetTrace` / `ListTraces` / `RenderTrace` / `RenderIndex`, or the
+shape of the types they carry (`Span`, `LogRecord`, `Trace`, `TraceSummary`),
+breaks downstream repos. Prefer additive change; if a break is unavoidable, it
+is a cross-repo change, not a local one. Everything under `internal/` is
+private and free to churn — put anything that is not a deliberate contract
+there.
+
+`otelstore` also exposes `WithTracesTable` / `WithLogsTable` and a `DB()`
+escape hatch (the raw `*sql.DB`, owned by the store). `DB()` exists because
+`GetTrace` is **span-anchored** — it returns `ErrNotFound` when the spans query
+is empty even if the trace id has logs — so a consumer that needs to assert
+"logs landed" must query around it. otelhouse's e2e does exactly that.
+
+## Tenancy
+
+The library is deliberately **tenant-blind**, and the isolation boundary lives
+in ClickHouse, not in Go:
+
+- The [otelhouse](https://github.com/guettli/otelhouse) gateway authenticates a
+  per-tenant JWT and stamps `ResourceAttributes['tenant']` on every record at
+  write time. Tenancy is established there, fail-closed.
+- Reads are constrained by a ClickHouse **row policy** bound to a per-tenant
+  read-only user (`<tenant>_ro`). The DSN's identity *is* the tenant.
+- Therefore no query in `otelstore` adds a tenant predicate, and none should: a
+  filter in Go would look like a security boundary without being one.
+
+A single service/UI process is still pointed at one DSN and so serves one
+tenant. Multi-tenant means "many tenants share one ClickHouse behind row
+policies", not "one process fans out across tenants" — there is no tenant
+switcher in the UI and no plan for one.
+
 ## ClickHouse access
 
-- One **read-only** CH user (creds from a k8s secret / env), one tenant.
+- One **read-only** CH user per deployment (creds from a k8s secret / env);
+  that user is the tenant boundary (see [Tenancy](#tenancy)).
 - Limits enforced on the CH user **profile** (server-side), not app code:
   `max_execution_time`, `max_rows_to_read`, `max_bytes_to_read`,
   `max_result_rows`, `max_memory_usage`.

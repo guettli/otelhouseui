@@ -5,7 +5,7 @@
 # The pipeline needs a reachable Dagger engine. Point the Dagger SDK at a remote
 # engine by exporting _EXPERIMENTAL_DAGGER_RUNNER_HOST before running; it is
 # inherited by `go run` below. The cluster upload step is skipped unless
-# OTELHOUSEUI_UPLOAD=1 (CI sets it only on pushes to main).
+# OTELHOUSEVIEW_UPLOAD=1 (CI sets it only on pushes to main).
 
 .PHONY: ci test ui-build ui-dev web web-dev app-test app-build
 ci test:

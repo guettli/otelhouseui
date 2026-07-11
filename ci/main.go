@@ -131,12 +131,12 @@ func pipeline(ctx context.Context) error {
 
 	// Upload to the cluster on pushes to main (the workflow sets UPLOAD=1);
 	// a no-op on PRs so forks/PRs never touch the cluster.
-	if os.Getenv("OTELHOUSEUI_UPLOAD") == "1" {
+	if os.Getenv("OTELHOUSEVIEW_UPLOAD") == "1" {
 		if err = uploadReport(ctx, client, indexHTML); err != nil {
 			return fmt.Errorf("upload report: %w", err)
 		}
 	} else {
-		fmt.Fprintln(os.Stderr, "OTELHOUSEUI_UPLOAD != 1 — skipping cluster upload")
+		fmt.Fprintln(os.Stderr, "OTELHOUSEVIEW_UPLOAD != 1 — skipping cluster upload")
 	}
 
 	fmt.Println("All checks passed.")
@@ -174,9 +174,9 @@ func runE2E(
 		WithEnvVariable("CLICKHOUSE_USER", clickhouseUser).
 		WithEnvVariable("CLICKHOUSE_PASSWORD", clickhousePassword).
 		WithEnvVariable("CLICKHOUSE_DSN", clickhouseDSN).
-		WithEnvVariable("OTELHOUSEUI_REPO", os.Getenv("OTELHOUSEUI_REPO")).
-		WithEnvVariable("OTELHOUSEUI_COMMIT", os.Getenv("OTELHOUSEUI_COMMIT")).
-		WithEnvVariable("OTELHOUSEUI_RUN_URL", os.Getenv("OTELHOUSEUI_RUN_URL")).
+		WithEnvVariable("OTELHOUSEVIEW_REPO", os.Getenv("OTELHOUSEVIEW_REPO")).
+		WithEnvVariable("OTELHOUSEVIEW_COMMIT", os.Getenv("OTELHOUSEVIEW_COMMIT")).
+		WithEnvVariable("OTELHOUSEVIEW_RUN_URL", os.Getenv("OTELHOUSEVIEW_RUN_URL")).
 		WithExec([]string{"sh", "-c", e2eScript})
 
 	if _, err := harness.Sync(ctx); err != nil {
@@ -224,11 +224,11 @@ func buildReport(client *dagger.Client, src *dagger.Directory, reportJSON *dagge
 // are passed as Dagger secrets so they never appear in logs. RBAC on the token
 // is limited to configmaps in the otelhouseui namespace.
 func uploadReport(ctx context.Context, client *dagger.Client, indexHTML *dagger.File) error {
-	server := os.Getenv("OTELHOUSEUI_KUBE_SERVER")
-	tokenRaw := os.Getenv("OTELHOUSEUI_KUBE_TOKEN")
-	caRaw := os.Getenv("OTELHOUSEUI_KUBE_CA")
+	server := os.Getenv("OTELHOUSEVIEW_KUBE_SERVER")
+	tokenRaw := os.Getenv("OTELHOUSEVIEW_KUBE_TOKEN")
+	caRaw := os.Getenv("OTELHOUSEVIEW_KUBE_CA")
 	if server == "" || tokenRaw == "" || caRaw == "" {
-		return fmt.Errorf("OTELHOUSEUI_KUBE_SERVER/TOKEN/CA must all be set when OTELHOUSEUI_UPLOAD=1")
+		return fmt.Errorf("OTELHOUSEVIEW_KUBE_SERVER/TOKEN/CA must all be set when OTELHOUSEVIEW_UPLOAD=1")
 	}
 	token := client.SetSecret("kube-token", tokenRaw)
 	ca := client.SetSecret("kube-ca", caRaw)

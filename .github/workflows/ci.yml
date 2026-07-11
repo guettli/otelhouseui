@@ -80,14 +80,19 @@ jobs:
       - name: Run Dagger pipeline
         env:
           # Provenance stamped into the report.
-          OTELHOUSEUI_REPO: ${{ github.repository }}
-          OTELHOUSEUI_COMMIT: ${{ github.sha }}
-          OTELHOUSEUI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OTELHOUSEVIEW_REPO: ${{ github.repository }}
+          OTELHOUSEVIEW_COMMIT: ${{ github.sha }}
+          OTELHOUSEVIEW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           # Upload the report to the cluster only on pushes to main.
-          OTELHOUSEUI_UPLOAD: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
+          OTELHOUSEVIEW_UPLOAD: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
           # Scoped kube credentials (configmaps in the otelhouseview namespace only).
-          # Unused on PRs, where OTELHOUSEUI_UPLOAD is 0.
-          OTELHOUSEUI_KUBE_SERVER: ${{ secrets.OTELHOUSEUI_KUBE_SERVER }}
-          OTELHOUSEUI_KUBE_TOKEN: ${{ secrets.OTELHOUSEUI_KUBE_TOKEN }}
-          OTELHOUSEUI_KUBE_CA: ${{ secrets.OTELHOUSEUI_KUBE_CA }}
+          # Unused on PRs, where OTELHOUSEVIEW_UPLOAD is 0.
+          #
+          # The *secret* names keep the old OTELHOUSEUI_ prefix on purpose: a
+          # GitHub Actions secret value cannot be read back, so renaming the
+          # secrets would mean re-creating them by hand and would break CI in
+          # the meantime. The env vars the pipeline reads are OTELHOUSEVIEW_*.
+          OTELHOUSEVIEW_KUBE_SERVER: ${{ secrets.OTELHOUSEUI_KUBE_SERVER }}
+          OTELHOUSEVIEW_KUBE_TOKEN: ${{ secrets.OTELHOUSEUI_KUBE_TOKEN }}
+          OTELHOUSEVIEW_KUBE_CA: ${{ secrets.OTELHOUSEUI_KUBE_CA }}
         run: cd ci && go run .
