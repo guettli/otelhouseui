@@ -3,7 +3,7 @@
 # Dagger handles: gofmt, go vet, go build, go test; the e2e telemetry harness
 # (upstream OTel Collector + emit + genreport → ClickHouse → report.json); the
 # Svelte single-file build; and, on pushes to main only, the upload of the
-# report into the cluster's otelhouseview-report ConfigMap.
+# The rendered report is attached to the run as an artifact; it is not deployed.
 name: CI
 
 on:
@@ -83,16 +83,15 @@ jobs:
           OTELHOUSEVIEW_REPO: ${{ github.repository }}
           OTELHOUSEVIEW_COMMIT: ${{ github.sha }}
           OTELHOUSEVIEW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          # Upload the report to the cluster only on pushes to main.
-          OTELHOUSEVIEW_UPLOAD: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
-          # Scoped kube credentials (configmaps in the otelhouseview namespace only).
-          # Unused on PRs, where OTELHOUSEVIEW_UPLOAD is 0.
-          #
-          # The *secret* names keep the old OTELHOUSEUI_ prefix on purpose: a
-          # GitHub Actions secret value cannot be read back, so renaming the
-          # secrets would mean re-creating them by hand and would break CI in
-          # the meantime. The env vars the pipeline reads are OTELHOUSEVIEW_*.
-          OTELHOUSEVIEW_KUBE_SERVER: ${{ secrets.OTELHOUSEUI_KUBE_SERVER }}
-          OTELHOUSEVIEW_KUBE_TOKEN: ${{ secrets.OTELHOUSEUI_KUBE_TOKEN }}
-          OTELHOUSEVIEW_KUBE_CA: ${{ secrets.OTELHOUSEUI_KUBE_CA }}
         run: cd ci && go run .
+
+      # The report is an artifact of the run, not a deployed page. It renders
+      # synthetic telemetry, so it never showed a real span; it is kept because
+      # building it exercises collector -> ClickHouse -> render end to end.
+      - name: Attach the rendered report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: otel-report
+          path: ci/report/index.html
+          if-no-files-found: warn

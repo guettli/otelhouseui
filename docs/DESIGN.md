@@ -190,7 +190,7 @@ There is **no standalone otelhouseview service per tenant.** `cmd/otelhouseview`
 mounts `explore` at `/` from `CLICKHOUSE_DSN` / `SQLITE_PATH` / `PORT` and is
 kept for local development; it authenticates nobody and does not belong on a
 public listener. The public static-report host
-(`otelhouseview.thomas-guettler.de`) is being **retired** — the report pipeline
+(`otelhouseview.thomas-guettler.de`) is **gone** — the report pipeline
 below survives as CI e2e coverage, not as a product surface.
 
 ## Static report pipeline (added)
@@ -201,7 +201,7 @@ repo's own CI exercises end to end.
 
 ```
 emit (OTLP) → OTel Collector → ClickHouse → genreport → report.json
-            → Svelte build (single-file) → dist/index.html → cluster ConfigMap
+            → Svelte build (single-file) → dist/index.html → CI artifact
 ```
 
 - **`ui/`** — Vite + Svelte 5 app built with `vite-plugin-singlefile`. It
@@ -214,11 +214,14 @@ emit (OTLP) → OTel Collector → ClickHouse → genreport → report.json
   breakdown, a metric curve and an OK/ERROR trace mix. `cmd/genreport` queries
   the clickhouseexporter tables (`otel_logs`, `otel_traces`,
   `otel_metrics_gauge`) and fails loudly rather than emit a partial report.
-- **Upload** — on pushes to `main`, the report is written into the
-  `otelhouseview-report` ConfigMap (namespace `otelhouseview`) via a
-  ServiceAccount token whose RBAC is limited to that one ConfigMap kind in that
-  namespace. A caddy Deployment mounts the ConfigMap and serves it. The kube
-  manifests live in the `guettli/gitops` repo (`k8s/plain/otelhouseview`).
+- **Output** — the rendered page is attached to the CI run as an artifact.
+  It is deliberately **not deployed**. It used to be uploaded into a ConfigMap
+  and served from a public host, which was retired: the report renders
+  *synthetic* telemetry that `emit` generated seconds earlier, so it never
+  showed a real span, and otelhouse's e2e now asserts the same pipeline **in
+  code** — a stronger check than a human squinting at a page. Building it still
+  earns its keep as an end-to-end exercise of collector → ClickHouse → render;
+  publishing it did not.
 
 Why `ui/` and `explore/web/` are two apps: both are Svelte 5, so the split is
 not a framework boundary — it is a delivery boundary. `explore/web/` is a live
