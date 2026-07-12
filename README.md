@@ -176,24 +176,27 @@ and the per-tenant DSN; a second deployment would rebuild all of it. So:
 - `cmd/otelhouseview` exists for **local development** — one process, `PORT` /
   `CLICKHOUSE_DSN` / `SQLITE_PATH` from the environment, workbench at `/`. It
   authenticates nobody. Do not put it on a public listener.
-- The public static-report host (`otelhouseview.thomas-guettler.de`) is being
-  **retired**; the report below stays as a CI artifact.
+- The public static-report host (`otelhouseview.thomas-guettler.de`) is **gone**;
+  the report below stays as a CI artifact.
 
 ## Static report pipeline (CI)
 
 Alongside the workbench, otelhouseview ships a **static report** path: a
-self-contained HTML report (Svelte + Vite, `ui/`) rendered entirely from real
-OTel data, with no live backend. The Dagger CI pipeline (`ci/`) is the single
-source of truth and, end to end:
+self-contained HTML report (Svelte + Vite, `ui/`) with no live backend. It is
+rendered from **synthetic** telemetry that `ci/cmd/emit` generates seconds
+earlier — it has never shown a real span, and it is not deployed anywhere. Its
+value is the **end-to-end coverage**, not the page. The Dagger CI pipeline
+(`ci/`) is the single source of truth and, end to end:
 
 1. runs an **ephemeral ClickHouse** and the **upstream OTel Collector**;
 2. runs `ci/cmd/emit` to push spread **logs, metrics and traces** over OTLP;
 3. runs `ci/cmd/genreport` to query ClickHouse and write `report.json`;
 4. bakes that JSON into a single `dist/index.html` via the Svelte build;
-5. on pushes to `main`, uploads the report into the cluster's
-   `otelhouseview-report` ConfigMap, served by a caddy Deployment at
-   <https://otelhouseview.thomas-guettler.de> — that public host is being
-   retired; the pipeline's value is the e2e coverage, not the URL.
+5. attaches the rendered page to the CI run as an artifact.
+
+The report used to be uploaded into a ConfigMap and served from a public host.
+That was retired: otelhouse's e2e now asserts the same pipeline **in code**,
+which is a stronger check than a human looking at a page of made-up data.
 
 `make ci` runs exactly what GitHub Actions runs (needs a reachable Dagger
 engine). `make ui-build` builds the report locally against the committed sample
